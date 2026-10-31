@@ -2,38 +2,219 @@
 // Work with us: the contact page. Email and location come from src/data/site.ts.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
-import { teamEmail, location, contactHref } from '../data/site';
+import PhotoBand from '../components/PhotoBand.astro';
+import SectionHeader from '../components/SectionHeader.astro';
+import PictureCards from '../components/PictureCards.astro';
+import StoryBand from '../components/StoryBand.astro';
+import { url } from '../lib/url';
+import { imageUrl } from '../lib/images';
+import { location, contactEmails } from '../data/site';
 
 const intro =
-  "Do you work with marine life between 50 and 300 meters, in research, conservation, fisheries or offshore energy? We'd love a 20-minute conversation about how you study it today.";
+  "Do you work with marine life between 50 and 300 meters, in research, conservation, fisheries or offshore energy? We'd love a 20\u2011minute conversation about how you study it today."; // \u2011 is a hyphen that never breaks the line
 
-const emailHref = contactHref(teamEmail);
+
+// Who we work with: the four groups from the intro, each with a photo of what it names, all in
+// natural colour so the row reads as one set (public/images/sections/). "needs" says what a missing
+// photo should show: until aud-offshore.jpg exists, that card shows a "photo to come" panel.
+// Text in [brackets] is a placeholder to fill in later.
+const audiences = [
+  { image: 'aud-research.jpg', tag: 'Research vehicle · NOAA', title: 'Research', text: 'Footage and eDNA samples from 50–300 m, at a cost that could let a study go back to the same reef again and again.' },
+  { image: 'aud-conservation.jpg', tag: 'Reef', title: 'Conservation', text: 'Regular footage of deep reefs in places like Flower Garden Banks, to spot change early and back up decisions about protecting them.' },
+  { image: 'aud-fisheries.jpg', tag: 'Fish school', title: 'Fisheries', text: 'Counts and footage of fish on deep reefs and banks, where divers and most surveys never reach.' },
+  { image: 'aud-offshore.jpg', needs: 'an offshore platform in the Gulf', title: 'Offshore energy', text: 'A low-cost look at the seafloor and the life around platforms, pipelines and cables in the Gulf.' },
+];
+
+// "What we bring back" and "How a project works": new copy (not from the Content doc), edit freely.
+// Turtle is still being built, so both are written as plans.
+// (\u00a0 is a space that never breaks the line, so "300 m" stays together)
+const deliverIntro = 'For every project, this is what we plan to hand over.';
+const deliverables = [
+  { title: 'Footage', text: 'Video of the life between 50 and 300\u00a0m, at the site and depth you choose, filmed often enough to compare one visit with the next.' },
+  { title: 'Dive records', text: 'Where and when each dive happened and how deep it went, so every clip can be matched with your own data.' },
+  { title: 'Water samples', text: 'Water from the same depths for eDNA testing, which can show what lives there even when it stays off camera.' },
+  { title: 'A short report', text: 'What we saw, in plain language, with the best clips picked out and ready to share.' },
+];
+const steps = [
+  { title: 'Talk', text: 'A first call about your work, the places you study and what you need to see there.' },
+  { title: 'Plan', text: 'Together we will pick the site, the depth and the dates, and what each dive needs to bring back.' },
+  { title: 'Dive', text: 'We will take Turtle out by boat to film and sample, and keep you posted from the water.' },
+  { title: 'Deliver', text: 'We will hand everything over, then talk about what to look at next time.' },
+];
 ---
 
-<BaseLayout title="Work with us" description={intro}>
-  <PageHeader title="Work with us" heading="Get in touch" href="/work-with-us" intro={intro} />
+<BaseLayout title="Work with us" description={intro} headerOverlay>
+  <PageHeader title="Work with us" heading="Get in touch" href="/work-with-us" intro={intro} caption="Research · Conservation · Fisheries · Offshore" image="work-with-us.jpg" imagePosition="80% 50%" />
 
-  <section class="container">
-    <dl class="contact-list" data-reveal-group>
-      <div class="contact-row">
-        <dt class="label">Email</dt>
-        <dd>
-          {emailHref ? (
-            <a class="contact-value contact-email" href={emailHref}>{teamEmail} <span aria-hidden="true">→</span></a>
-          ) : (
-            <span class="contact-value contact-placeholder">{teamEmail}</span>
-          )}
-        </dd>
+  <!-- Light band: everything below the photo header -->
+  <div class="band band--top theme-light">
+    <section class="container contact-layout" id="contact">
+      <dl class="contact-list" data-reveal-group>
+        <!-- One row per address (src/data/site.ts, contactEmails): what it's for, then the address -->
+        {contactEmails.map((contact) => (
+          <div class="contact-row">
+            <dt class="label">{contact.label}</dt>
+            <dd>
+              <a class="contact-value contact-email" href={`mailto:${contact.email}`}>{contact.email} <span aria-hidden="true">→</span></a>
+            </dd>
+          </div>
+        ))}
+        <div class="contact-row">
+          <dt class="label">Location</dt>
+          <dd><span class="contact-value">{location}</span></dd>
+        </div>
+      </dl>
+
+      <!-- Picture beside the contact details, in the style of Colossal's species pages: a big edited
+           photo (jellyfish in a magenta and orange map), a lime colour block behind it with a notch
+           cut out, and an orange dot on one corner. (No small inset photo here: insets never sit
+           right under a page header.) Picture: public/images/accents/jelly.jpg. -->
+      <figure class="collage" aria-hidden="true" data-drift="50">
+        <span class="collage-block"></span>
+        <img class="collage-main" src={imageUrl('accents/jelly.jpg')} alt="" width="1280" height="960" loading="lazy" decoding="async" />
+        <span class="collage-dot"></span>
+        <span class="label collage-tag">[ Jellyfish ]</span>
+      </figure>
+    </section>
+  </div>
+
+  <!-- Story band: the 20-minute conversation, over the feather star on the canyon wall (NOAA) in
+       teal and pink, like the "Allied with others" band on Colossal's company page.
+       Copy: the big line is from the Content doc intro ("a 20-minute conversation"); the two columns are placeholders. -->
+  <StoryBand
+    variant="statement"
+    image="story-talk.jpg"
+    position="60% 50%"
+    tag="A conversation about your work"
+    title="20 minutes"
+    items={[
+      { title: "What we'll ask", text: 'How you study marine life at 50–300 m today, what it costs you, and what you wish you could see more often.' },
+      { title: "What you'll get", text: 'A first look at what we are building, and a say in what it should do for work like yours.' },
+    ]}
+  />
+
+  <!-- Light band: who we work with -->
+  <div class="band band--top theme-light">
+    <!-- Section 01: who we work with, four photo cards -->
+    <section class="container audiences">
+      <SectionHeader number={1} title="Who we work with" />
+      <PictureCards items={audiences} columns={4} />
+    </section>
+  </div>
+
+  <!-- What we bring back: a bright orange band (not every stretch has to be navy) with a wide technical
+       title (Martian Mono) and the coral wall in natural colour, its corner notched like the colour
+       blocks on Colossal's pages. Photo: public/images/sections/work-coral.jpg. -->
+  <section class="band theme-sun deliver">
+    <div class="container deliver-grid">
+      <figure class="deliver-photo" data-drift="70">
+        <img src={imageUrl('sections/work-coral.jpg')} alt="A reef wall covered in coral, with a school of small red fish in deep blue water" width="1100" height="1650" loading="lazy" decoding="async" />
+        <figcaption class="label">[ Reef wall · School of fish ]</figcaption>
+      </figure>
+
+      <div class="deliver-body">
+        <p class="label">[ Once Turtle is in the water ]</p>
+        <h2 class="tech-title deliver-title">What we bring back</h2>
+        <p class="deliver-intro">{deliverIntro}</p>
+        <ul class="deliver-list">
+          {deliverables.map((item) => (
+            <li>
+              <h3 class="wide-head">{item.title}</h3>
+              <p>{item.text}</p>
+            </li>
+          ))}
+        </ul>
       </div>
-      <div class="contact-row">
-        <dt class="label">Location</dt>
-        <dd><span class="contact-value">{location}</span></dd>
-      </div>
-    </dl>
+    </div>
   </section>
+
+  <!-- How a project works: four steps on a violet to deep blue gradient. On laptops each step sits a
+       little lower than the one before, like a dive going down, joined by a stepped line from ring to
+       ring; on tablets and phones they become a timeline down the left. No pictures: the type carries it. -->
+  <section class="band theme-violet steps">
+    <div class="container">
+      <p class="label steps-tag">[ From first call to footage ]</p>
+      <h2 class="tech-title steps-title">How a project works</h2>
+      <ol class="steps-list">
+        {steps.map((step, i) => (
+          <li style={`--i: ${i}`}>
+            <span class="step-marker" aria-hidden="true"></span>
+            <span class="step-num">{String(i + 1).padStart(2, '0')}</span>
+            <h3 class="wide-head">{step.title}</h3>
+            <p>{step.text}</p>
+          </li>
+        ))}
+      </ol>
+      <a class="button steps-button" href="#contact">Start with a call <span aria-hidden="true">↑</span></a>
+    </div>
+  </section>
+
+
+  <!-- One big photo (anemone, false colour) leading on to Donate. Copy: the Donate page heading. -->
+  <PhotoBand image="work-with-us.jpg" position="50% 50%" heading="Support our research" tag="Parts · Testing · Field trips">
+    <a class="button" href={url('/donate')}>Donate <span aria-hidden="true">→</span></a>
+  </PhotoBand>
 </BaseLayout>
 
 <style>
+  /* Contact details on the left, the collage on the right */
+  .contact-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: var(--space-xl);
+    align-items: start;
+  }
+
+  .audiences {
+    padding-top: var(--space-lg);
+  }
+
+  /* ---------- Collage ---------- */
+
+  /* it sits level with the lower contact rows, so it isn't right under the photo header */
+  .collage {
+    position: relative;
+    align-self: end;
+    margin: var(--space-2xl) 0 var(--space-xl) var(--space-lg);
+  }
+
+  /* Lime block behind the photo, poking out at the top left, with a notch cut from its bottom right */
+  .collage-block {
+    position: absolute;
+    top: calc(-1 * var(--space-md));
+    left: calc(-1 * var(--space-lg));
+    width: 72%;
+    height: calc(100% + var(--space-lg));
+    background: var(--color-lime);
+    clip-path: polygon(0 0, 100% 0, 100% 62%, 58% 62%, 58% 100%, 0 100%);
+  }
+
+  .collage-main {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+  }
+
+  .collage-dot {
+    position: absolute;
+    top: -0.55rem;
+    right: -0.55rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    background: var(--color-orange);
+  }
+
+  .collage-tag {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    padding: 0.3rem 0.55rem;
+    color: var(--color-white);
+    background: rgb(6 18 31 / 0.6);
+  }
+
   .contact-list {
     margin: 0;
     border-bottom: 1px solid var(--color-line);
@@ -53,12 +234,13 @@ const emailHref = contactHref(teamEmail);
     min-width: 0;
   }
 
-  /* Big, Colossal-style contact details */
+  /* Big, Colossal-style contact details (three addresses, so a little smaller than one would be) */
   .contact-value {
     font-family: var(--font-display);
     font-stretch: var(--display-width);
+    word-spacing: 0.1em; /* the condensed face squeezes the spaces too */
     font-weight: 800;
-    font-size: clamp(2rem, 1rem + 4vw, 4.5rem);
+    font-size: clamp(1.5rem, 0.9rem + 2vw, 2.8rem); /* sized so the longest address and its arrow fit on one line */
     line-height: 1;
     text-transform: uppercase;
     overflow-wrap: anywhere; /* long email addresses wrap instead of overflowing */
@@ -79,14 +261,291 @@ const emailHref = contactHref(teamEmail);
     transform: translateX(6px);
   }
 
-  .contact-placeholder {
+  /* Tablet and phone: the collage goes under the contact details */
+  @media (max-width: 1199px) {
+    .contact-layout {
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+    }
+
+    /* the right margin keeps the orange dot on the corner inside the page margin */
+    .collage {
+      width: min(34rem, 88%);
+      margin: var(--space-md) 0.6rem calc(var(--space-xl) + var(--space-md)) auto;
+    }
+  }
+
+  /* ---------- What we bring back (orange) ---------- */
+
+  .deliver {
+    padding-top: var(--space-2xl);
+  }
+
+  .deliver-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: clamp(2.5rem, 6vw, 6rem);
+    align-items: start;
+  }
+
+  .deliver-photo {
+    margin: 0;
+  }
+
+  /* cropped to 4:5, with a square notch cut from the bottom right corner and the caption tucked into it */
+  .deliver-photo img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    clip-path: polygon(0 0, 100% 0, 100% 88%, 72% 88%, 72% 100%, 0 100%);
+  }
+
+  .deliver-photo figcaption {
+    margin: -2.2rem 0 0 74%;
     color: var(--color-muted);
-    text-transform: none;
+  }
+
+  .deliver-title {
+    margin: var(--space-sm) 0 0;
+  }
+
+  .deliver-intro {
+    max-width: 36rem;
+    margin: var(--space-md) 0 0;
+    font-size: 1.1rem;
+  }
+
+  /* the four things, two by two, each under a dark rule */
+  .deliver-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-xl) var(--space-lg);
+    margin: var(--space-xl) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .deliver-list li {
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-text);
+  }
+
+  .deliver-list .wide-head {
+    font-size: clamp(1.15rem, 0.95rem + 0.6vw, 1.5rem);
+  }
+
+  .deliver-list p {
+    margin: 0.6rem 0 0;
+    color: var(--color-muted);
+  }
+
+  /* ---------- How a project works (violet) ---------- */
+
+  .steps {
+    padding-top: var(--space-2xl);
+  }
+
+  .steps-tag {
+    margin: 0 0 var(--space-md);
+    text-align: center;
+  }
+
+  .steps-title {
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .steps-list {
+    --drop: 3rem;   /* how much lower each step sits than the one before (laptops) */
+    --gap: var(--space-lg);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--gap);
+    margin: var(--space-2xl) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .steps-list li {
+    position: relative;
+    margin-top: calc(var(--i) * var(--drop));
+  }
+
+  /* the stepped line: along from this ring to above the middle of the next one, then down into its
+     top (each ring is 2.6rem across, so its middle is 1.3rem in) */
+  .steps-list li:not(:last-child)::before,
+  .steps-list li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    background: var(--color-line);
+  }
+
+  .steps-list li:not(:last-child)::before {
+    top: 1.3rem;
+    left: 2.6rem;
+    right: calc(-1 * (var(--gap) + 1.3rem));
+    height: 1px;
+  }
+
+  .steps-list li:not(:last-child)::after {
+    top: 1.3rem;
+    right: calc(-1 * (var(--gap) + 1.3rem));
+    width: 1px;
+    height: calc(var(--drop) - 1.3rem);
+  }
+
+  .step-marker {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border: 1px solid var(--color-line);
+    border-radius: 50%;
+  }
+
+  .step-marker::after {
+    content: '';
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--color-lime);
+  }
+
+  .step-num {
+    display: block;
+    margin-top: var(--space-lg);
+    font-family: var(--font-tech);
+    font-stretch: 112.5%;
+    font-weight: 300;
+    font-size: clamp(2.6rem, 1.6rem + 2.4vw, 4.4rem);
+    line-height: 1;
+    color: var(--color-lime);
+  }
+
+  .steps-list .wide-head {
+    margin-top: var(--space-md);
+  }
+
+  .steps-list p {
+    margin: var(--space-xs) 0 0;
+    color: var(--color-muted);
+  }
+
+  .steps-button {
+    margin-top: var(--space-xl);
+  }
+
+  /* laptops: the button sits under the last step, where the dive ends */
+  @media (min-width: 1000px) {
+    .steps-button {
+      margin-left: calc(75% + 0.75 * var(--gap, var(--space-lg)));
+    }
+  }
+
+  /* Tablet and phone: one column: the title and intro, then the photo, then the list.
+     The steps become a timeline down the left, a line joining each ring to the next. */
+  @media (max-width: 999px) {
+    .deliver-grid {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+
+    .deliver-body {
+      display: contents; /* its children join the grid, so the photo can sit between them */
+    }
+
+    .deliver-body > .label { order: 1; }
+    .deliver-title { order: 2; }
+    .deliver-intro { order: 3; }
+    .deliver-photo { order: 4; }
+    .deliver-list { order: 5; }
+
+    .deliver-photo {
+      margin-top: var(--space-xl);
+    }
+
+    .deliver-photo figcaption {
+      margin: 0.6rem 0 0;
+    }
+
+    .steps-list {
+      grid-template-columns: 1fr;
+      max-width: 40rem;
+      --gap: var(--space-lg);
+    }
+
+    .steps-list li {
+      display: grid;
+      grid-template-columns: 2.6rem minmax(0, 1fr);
+      column-gap: var(--space-md);
+      margin-top: 0;
+    }
+
+    .step-marker {
+      grid-row: 1 / span 3;
+    }
+
+    .step-num {
+      margin-top: 0.2rem;
+      font-size: 2.4rem;
+    }
+
+    .steps-list .wide-head {
+      margin-top: var(--space-xs);
+    }
+
+    /* the line runs down from under this ring to the next one */
+    .steps-list li:not(:last-child)::before {
+      top: 2.6rem;
+      left: 1.3rem;
+      right: auto;
+      bottom: calc(-1 * var(--gap));
+      width: 1px;
+      height: auto;
+    }
+
+    .steps-list li:not(:last-child)::after {
+      display: none;
+    }
+  }
+
+  /* Tablet: the photo beside the list, under the title */
+  @media (min-width: 700px) and (max-width: 999px) {
+    .deliver-grid {
+      grid-template-columns: minmax(0, 4fr) minmax(0, 6fr);
+      column-gap: var(--space-lg);
+    }
+
+    .deliver-body > .label,
+    .deliver-title,
+    .deliver-intro {
+      grid-column: 1 / -1;
+    }
+
+    .deliver-list {
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+      align-self: start;
+      margin-top: var(--space-xl);
+    }
+  }
+
+  /* Phone: the list in one column */
+  @media (max-width: 699px) {
+    .deliver-list {
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+    }
   }
 
   @media (max-width: 700px) {
     .contact-row {
       grid-template-columns: 1fr;
+    }
+
+    .collage-block {
+      top: calc(-1 * var(--space-sm));
+      left: calc(-1 * var(--space-md));
     }
   }
 </style>

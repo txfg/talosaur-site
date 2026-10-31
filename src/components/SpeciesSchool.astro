@@ -1,0 +1,128 @@
+---
+// How many ocean species have a name, as a still picture in the same style as the dotted Earth: a round
+// "porthole" with a school of 100 sea animals swirling around the middle, one for every hundred species.
+// The few that are named sit at the centre and the unnamed crowd swirls around them:
+//   orange   9: named, by any count (one study says 91% are still undescribed)
+//   cyan     24 more: named, by NOAA's count (about two-thirds still undescribed)
+//   outline  the other 67: still waiting for a name
+// The animals are laid out like the seeds of a sunflower and each is turned to swim around the centre.
+// No motion. Numbers and sources: explored.named in src/data/problem.ts.
+const CX = 300, CY = 300, R = 288;
+const N = 100, SPREAD = 250;
+const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+const SHAPES = ['fish', 'fish', 'squid', 'fish', 'jelly', 'fish', 'squid'];
+const animals = Array.from({ length: N }, (_, i) => {
+  const r = SPREAD * Math.sqrt((i + 0.5) / N);
+  const a = i * GOLDEN;
+  const shape = SHAPES[i % SHAPES.length];
+  // turned so they all swim the same way round the centre (the fish drawing points left; the squid
+  // and jellyfish point up)
+  const deg = (a * 180) / Math.PI + (shape === 'fish' ? 90 : 0);
+  return {
+    x: CX + r * Math.cos(a),
+    y: CY + r * Math.sin(a),
+    deg,
+    shape,
+    state: i < 9 ? 'any' : i < 33 ? 'noaa' : 'unnamed',
+  };
+});
+const f = (n: number) => n.toFixed(1);
+---
+
+<div class="school">
+  <svg viewBox="0 0 600 600" role="img" aria-label="A school of 100 sea animals swirling in a circle: 9 in the middle named by any count, 24 more named by NOAA's count, and 67 around them still unnamed">
+    <defs>
+      <radialGradient id="ss-glass" cx="40%" cy="35%" r="70%">
+        <stop offset="0" stop-color="#13324a" />
+        <stop offset="1" stop-color="#0b1620" />
+      </radialGradient>
+      <symbol id="ss-fish" viewBox="0 0 24 24"><path d="M2.5 12c3.2-4.6 8.4-5.6 12.4-3.1L21.5 5v14l-6.6-3.9C10.9 17.6 5.7 16.6 2.5 12z" /></symbol>
+      <symbol id="ss-jelly" viewBox="0 0 24 24"><path d="M4.5 12.5a7.5 7.5 0 0 1 15 0z" /><path d="M7 13v6M10.3 13v8M13.7 13v8M17 13v6" /></symbol>
+      <symbol id="ss-squid" viewBox="0 0 24 24"><path d="M12 2l4.2 5.8v7.4L14 17.4V22l-2-2.8-2 2.8v-4.6l-2.2-2.2V7.8z" /></symbol>
+    </defs>
+    <circle cx={CX} cy={CY} r={R} fill="url(#ss-glass)" />
+    {animals.map((n) => (
+      <use href={`#ss-${n.shape}`} x="-16" y="-16" width="32" height="32" transform={`translate(${f(n.x)} ${f(n.y)}) rotate(${f(n.deg)})`} class={`ss ss--${n.state}`} />
+    ))}
+    <circle cx={CX} cy={CY} r={R} class="ss-rim" />
+  </svg>
+  <ul class="school-key">
+    <li class="label"><span class="key key--any"></span>9 named, by any count</li>
+    <li class="label"><span class="key key--noaa"></span>24 more, by NOAA's count</li>
+    <li class="label"><span class="key key--unnamed"></span>Still unnamed</li>
+  </ul>
+</div>
+
+<style>
+  .school svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .ss {
+    stroke-width: 1.1;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+
+  .ss--any {
+    color: #ff7a2f;
+    fill: currentColor;
+    stroke: currentColor;
+  }
+
+  .ss--noaa {
+    color: #3de0d0;
+    fill: currentColor;
+    stroke: currentColor;
+  }
+
+  .ss--unnamed {
+    color: rgb(232 241 245 / 0.55);
+    fill: none;
+    stroke: currentColor;
+  }
+
+  .ss-rim {
+    fill: none;
+    stroke: #3de0d0;
+    stroke-opacity: 0.35;
+  }
+
+  .school-key {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem 1.25rem;
+    margin: var(--space-md) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .school-key li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--color-text);
+  }
+
+  .key {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 50%;
+  }
+
+  .key--any {
+    background: #ff7a2f;
+  }
+
+  .key--noaa {
+    background: #3de0d0;
+  }
+
+  .key--unnamed {
+    border: 1px solid var(--color-text);
+  }
+</style>

@@ -1,0 +1,136 @@
+---
+// A fact sheet in Colossal's style (their mammoth page lists HEIGHT / WEIGHT / LIFE SPAN in white
+// boxed labels on black, beside a big cut-out of the animal). Use it inside a dark band.
+//
+//   <SpecList items={[{ label: 'Depth', value: '50–300 m' }]} image="glance-jelly.webp" />
+//
+// A value in [brackets] is a placeholder. A fact can link to its source.
+import { imageUrl } from '../lib/images';
+import { keepUnits } from '../lib/text';
+
+interface Item {
+  label: string;
+  value: string;
+  source?: { label: string; href: string };
+}
+
+interface Props {
+  items: Item[];
+  image?: string;     // a cut-out (transparent background) in public/images/sections/, shown on the right
+  width?: number;     // its real size in pixels
+  height?: number;
+}
+
+const { items, image, width = 1522, height = 959 } = Astro.props;
+---
+
+<div class:list={['spec', { 'spec--image': !!image }]}>
+  <dl class="spec-list" data-reveal-group>
+    {items.map((item) => (
+      <div class="spec-row">
+        <dt class="label spec-label">{item.label} /</dt>
+        <dd class="spec-value">
+          {keepUnits(item.value)}
+          {item.source && <a class="label spec-src" href={item.source.href} target="_blank" rel="noopener">[ {item.source.label} ]</a>}
+        </dd>
+      </div>
+    ))}
+  </dl>
+  {image && (
+    <figure class="spec-figure" aria-hidden="true">
+      <img src={imageUrl(`sections/${image}`)} alt="" width={width} height={height} loading="lazy" decoding="async" data-drift="80" />
+    </figure>
+  )}
+</div>
+
+<style>
+  .spec {
+    position: relative;
+  }
+
+  .spec-list {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: var(--space-md);
+    margin: 0;
+    max-width: 44rem;
+  }
+
+  .spec-row {
+    display: grid;
+    grid-template-columns: 12rem 1fr;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  /* white boxed label, dark text */
+  .spec-label {
+    justify-self: start;
+    padding: 0.45rem 0.7rem;
+    color: var(--color-bg);
+    background: var(--color-text);
+    letter-spacing: 0.12em;
+  }
+
+  /* the facts themselves in the body face, in sentence case, so they read as sentences beside the boxed labels */
+  .spec-value {
+    margin: 0;
+    font-size: var(--text-lg);
+    color: var(--color-text);
+    line-height: 1.45;
+    text-wrap: pretty;
+  }
+
+  /* source link: padded so it's an easier tap target on phones */
+  .spec-src {
+    display: inline-block;
+    padding-block: 0.35rem;
+    margin-left: 0.5rem;
+    color: var(--color-accent);
+    vertical-align: 0.1em;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .spec-src:hover {
+    text-decoration: underline;
+  }
+
+  /* The cut-out sits on the right and runs off the edge of the screen */
+  .spec-figure {
+    position: absolute;
+    z-index: 0;
+    top: 50%;
+    right: calc(-1 * var(--gutter) - max(0px, (100vw - var(--max-width)) / 2) - 4vw);
+    width: min(52vw, 46rem);
+    margin: 0;
+    translate: 0 -50%;
+    pointer-events: none;
+  }
+
+  .spec-figure img {
+    width: 100%;
+    height: auto;
+  }
+
+  /* Narrower screens: the list first, the cut-out under it */
+  @media (max-width: 1023px) {
+    /* ...and runs off the right edge of the screen, instead of stopping at the page margin */
+    .spec-figure {
+      position: relative;
+      top: auto;
+      right: auto;
+      width: calc(100% + var(--gutter));
+      margin: var(--space-lg) calc(-1 * var(--gutter)) 0 0;
+      translate: none;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .spec-row {
+      grid-template-columns: 1fr;
+      gap: var(--space-xs);
+    }
+  }
+</style>

@@ -5,10 +5,26 @@ import { render } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
 import Photo from '../components/Photo.astro';
+import PhotoBand from '../components/PhotoBand.astro';
+import TestRoute from '../components/TestRoute.astro';
+import { twitchUrl } from '../data/site';
 import { getSortedNews, formatNewsDate } from '../lib/news';
 import { imageExists } from '../lib/images';
 
 const entries = await getSortedNews();
+
+// Where we test: the stops on the test ladder from the Turtle drawing (Home page), from the pool in
+// College Station out to Flower Garden Banks. x and y place each stop on the map (left %, top %,
+// printed by stills_site/make_sections.py route_map). Each stop has a small photo: until its file
+// is in public/images/sections/, a "photo to come" panel shows what it should be.
+// Text in [brackets] is a placeholder to fill in later.
+const stops = [
+  { name: 'Pool', place: 'College Station', x: 45.4, y: 27.4, lead: [2.4, 0.6], image: 'test-pool.jpg', needs: 'A pool test', text: 'First up. Calm, clear water to check that Turtle stays watertight and handles the way it should.' },
+  { name: 'Lake Bryan', place: 'Bryan', x: 43.6, y: 25.8, image: 'test-lake-bryan.jpg', needs: 'Lake Bryan', text: 'Open water close to home: longer runs in murky water, more like a real survey.', lead: [-2.2, -2.8] },
+  { name: 'Lake Travis', place: 'Austin', x: 23.6, y: 31.5, image: 'test-lake-travis.jpg', needs: 'Lake Travis', text: 'A deeper lake near Austin, to take Turtle further down.' },
+  { name: 'Galveston', place: 'Gulf coast', x: 66.7, y: 53.6, image: 'test-galveston.jpg', needs: 'Galveston', text: 'First time in salt water, from a boat off the Gulf coast.' },
+  { name: 'Offshore', place: 'Flower Garden Banks', x: 81.7, y: 81.2, image: 'test-offshore.jpg', needs: 'Flower Garden Banks', text: 'The goal: filming the deep reefs of Flower Garden Banks, where most of the sanctuary lies in the twilight zone.' },
+];
 
 // Turn each entry's Markdown body into HTML we can place on the page
 const items = await Promise.all(
@@ -20,31 +36,44 @@ const items = await Promise.all(
 );
 ---
 
-<BaseLayout title="News">
-  <PageHeader title="News" href="/news" />
+<BaseLayout title="News" headerOverlay>
+  <PageHeader title="News" href="/news" caption="Updates · Photos · Videos" image="news.jpg" imagePosition="47% 50%" />
 
-  <section class="container">
-    <ol class="news-list" data-reveal-group>
-      {items.map(({ entry, Content, hasPhoto }) => (
-        <li id={entry.id} class:list={['news-item', { 'news-item--has-photo': hasPhoto }]}>
-          <p class:list={['label', 'news-date', { 'news-date--upcoming': entry.data.upcoming }]}>
-            {entry.data.date
-              ? <time datetime={entry.data.date.toISOString().slice(0, 10)}>{formatNewsDate(entry)}</time>
-              : formatNewsDate(entry)}
-          </p>
-          <div class="news-body">
-            <h2 class="news-title">{entry.data.title}</h2>
-            <div class="news-text"><Content /></div>
-          </div>
-          {hasPhoto && (
-            <div class="news-photo">
-              <Photo file={`news/${entry.data.image}`} label={entry.data.title} ratio="4 / 3" />
+  <!-- Light band: everything below the photo header -->
+  <div class="band band--top theme-light">
+    <section class="container news-layout">
+      <ol class="news-list" data-reveal-group>
+        {items.map(({ entry, Content, hasPhoto }) => (
+          <li id={entry.id} class:list={['news-item', { 'news-item--has-photo': hasPhoto }]}>
+            <p class:list={['label', 'news-date', { 'news-date--upcoming': entry.data.upcoming }]}>
+              {entry.data.date
+                ? <time datetime={entry.data.date.toISOString().slice(0, 10)}>{formatNewsDate(entry)}</time>
+                : formatNewsDate(entry)}
+            </p>
+            <div class="news-body">
+              <h2 class="news-title">{entry.data.title}</h2>
+              <div class="news-text"><Content /></div>
             </div>
-          )}
-        </li>
-      ))}
-    </ol>
-  </section>
+            {hasPhoto && (
+              <div class="news-photo">
+                <Photo file={`news/${entry.data.image}`} label={entry.data.title} ratio="4 / 3" />
+              </div>
+            )}
+          </li>
+        ))}
+      </ol>
+
+    </section>
+
+  </div>
+
+  <!-- Section 01: where we test. An orange band with a map of the test stops (Colossal's locations map) -->
+  <TestRoute number={1} title="Where we test" tag="From the pool to the reef" stops={stops} />
+
+  <!-- Closing photo (moray eel, thermal false colour). Copy: Content doc, "Talosaur Live" card. -->
+  <PhotoBand image="news.jpg" position="40% 50%" heading="Talosaur Live" tag="Join the live build stream and see our engineers at work">
+    <a class="button" href={twitchUrl} target="_blank" rel="noopener noreferrer">Watch on Twitch <span aria-hidden="true">↗</span></a>
+  </PhotoBand>
 </BaseLayout>
 
 <style>
@@ -81,13 +110,20 @@ const items = await Promise.all(
     color: var(--color-accent);
   }
 
-  /* "Coming soon" gets a small outlined badge */
+  /* "Coming soon" in the same plain type as the dates, with a small orange dot before it */
   .news-date--upcoming {
-    justify-self: start; /* don't stretch to the width of the date column */
-    width: fit-content;
-    padding: 0.2rem 0.6rem;
-    border: 1px solid var(--color-accent);
-    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .news-date--upcoming::before {
+    content: '';
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-orange);
   }
 
   .news-title {

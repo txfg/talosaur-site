@@ -17,7 +17,7 @@ export async function getSortedNews(): Promise<NewsEntry[]> {
 // The text shown for an entry's date, e.g. "Oct 16, 2026"
 export function formatNewsDate(entry: NewsEntry): string {
   if (entry.data.dateLabel) return entry.data.dateLabel;
-  if (!entry.data.date) return '[Date]';
+  if (!entry.data.date) return '[ Date ]';
   return entry.data.date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',

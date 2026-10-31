@@ -1,0 +1,255 @@
+---
+// "Where we test" on the News page: an orange band with a map of East Texas and the Gulf and the
+// test stops numbered on it, from the pool in College Station out to Flower Garden Banks. Drawn
+// like the locations map on Colossal's company page (orange band, line map, list with dots).
+//
+// The stops are listed in src/pages/news.astro. Each has a small photo; until its file is in
+// public/images/sections/, a "photo to come" panel says what it should show.
+// The map is public/images/sections/test-route-map.png (made by stills_site/make_sections.py,
+// which also prints where each place falls on it, as left % and top %).
+import SectionHeader from './SectionHeader.astro';
+import PhotoPlaceholder from './PhotoPlaceholder.astro';
+import { imageExists, imageUrl } from '../lib/images';
+
+interface Stop {
+  name: string;       // 'Pool'
+  place: string;      // 'College Station'
+  x: number;          // where it is on the map, left %
+  y: number;          // top %
+  image: string;      // photo file name in public/images/sections/
+  needs: string;      // what that photo should show
+  text: string;       // a line about the test ([bracket] placeholder until written)
+  lead?: [number, number]; // when two stops are close: move the number this far from the dot
+                           // (right, down, in rem; negative = left or up) with a thin line to it
+}
+
+interface Props {
+  number: number;
+  title: string;
+  tag?: string;
+  stops: Stop[];
+}
+
+const { number, title, tag, stops } = Astro.props;
+const pad = (n: number) => String(n + 1).padStart(2, '0');
+
+// the leader line from a dot to its moved number: its length and angle
+const leadLine = ([dx, dy]: [number, number]) =>
+  `width: ${Math.hypot(dx, dy).toFixed(2)}rem; transform: rotate(${(Math.atan2(dy, dx) * 180 / Math.PI).toFixed(1)}deg);`;
+---
+
+<section class="route">
+  <div class="container">
+    <SectionHeader number={number} title={title}>
+      {tag && <p class="label route-tag">[ {tag} ]</p>}
+    </SectionHeader>
+
+    <div class="route-grid">
+      <figure class="route-map">
+        <img src={imageUrl('sections/test-route-map.png')} alt="Map of East Texas and the Gulf of Mexico with the test stops: College Station, Lake Bryan, Lake Travis, Galveston and Flower Garden Banks" width="1600" height="1302" loading="lazy" decoding="async" />
+        {stops.map((stop, i) => (
+          <span class="route-pin" style={`left: ${stop.x}%; top: ${stop.y}%;`} aria-hidden="true">
+            <span class="route-dot"></span>
+            {stop.lead && <span class="route-lead" style={leadLine(stop.lead)}></span>}
+            <span
+              class:list={['label', 'route-num', { 'route-num--lead': stop.lead, 'route-num--west': stop.lead && stop.lead[0] < 0 }]}
+              style={stop.lead ? `--dx: ${stop.lead[0]}rem; --dy: ${stop.lead[1]}rem;` : undefined}
+            >{pad(i)}</span>
+          </span>
+        ))}
+      </figure>
+
+      <ol class="route-list" data-reveal-group>
+        {stops.map((stop, i) => (
+          <li class="route-stop">
+            <div class="route-thumb">
+              {imageExists(`sections/${stop.image}`) ? (
+                <img src={imageUrl(`sections/${stop.image}`)} alt="" loading="lazy" decoding="async" />
+              ) : (
+                <PhotoPlaceholder label={stop.needs} compact />
+              )}
+            </div>
+            <div class="route-body">
+              <p class="route-head"><span class="route-ring" aria-hidden="true"></span><span class="label">{pad(i)}</span> {stop.name}</p>
+              <p class="label route-place">{stop.place}</p>
+              <p class="route-text">{stop.text}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Orange band with dark ink, whatever band sits around it */
+  .route {
+    --color-text: var(--light-text);
+    --color-muted: rgb(11 22 32 / 0.75);
+    --color-line: rgb(11 22 32 / 0.35);
+    --color-accent: var(--light-text);
+    position: relative;
+    padding-block: var(--space-2xl);
+    color: var(--color-text);
+    background: var(--color-orange);
+  }
+
+  .route-tag {
+    margin: 0;
+    padding: 0.3rem 0.55rem;
+    border: 1px solid var(--color-line);
+  }
+
+  .route-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: var(--space-xl);
+    align-items: start;
+    margin-top: var(--space-xl);
+  }
+
+  .route-map {
+    position: relative;
+    margin: 0;
+  }
+
+  .route-map img {
+    width: 100%;
+    height: auto;
+  }
+
+  /* each pin is a point on the map: the dot is centred on it, the number sits just to its right */
+  .route-pin {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  .route-dot {
+    position: absolute;
+    left: -0.4rem;
+    top: -0.4rem;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 50%;
+    background: var(--color-white);
+    box-shadow: 0 0 0 2px var(--light-text);
+  }
+
+  .route-num {
+    position: absolute;
+    left: 0.7rem;
+    top: 0;
+    transform: translateY(-50%);
+    padding: 0.15rem 0.35rem;
+    color: var(--color-white);
+    background: var(--light-text);
+    white-space: nowrap;
+  }
+
+  /* two stops close together: the number moves out along a thin line */
+  .route-num--lead {
+    left: var(--dx);
+    top: var(--dy);
+  }
+
+  .route-num--west {
+    transform: translate(-100%, -50%);
+  }
+
+  .route-lead {
+    position: absolute;
+    left: 0;
+    top: -0.5px;
+    height: 1px;
+    background: var(--light-text);
+    transform-origin: 0 50%;
+  }
+
+  .route-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .route-stop {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr;
+    gap: var(--space-md);
+    padding-block: var(--space-sm);
+    border-top: 1px solid var(--color-line);
+  }
+
+  .route-thumb {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+  }
+
+  .route-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .route-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    font-family: var(--font-display);
+    font-stretch: 112%;
+    font-weight: 600;
+    font-size: clamp(1.1rem, 0.85rem + 0.7vw, 1.45rem);
+    line-height: 1.05;
+    text-transform: uppercase;
+  }
+
+  /* ring with a dot in it, like Colossal's location list */
+  .route-ring {
+    flex: none;
+    width: 0.95rem;
+    height: 0.95rem;
+    border: 2px solid var(--light-text);
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--light-text) 0 28%, transparent 30%);
+  }
+
+  .route-place {
+    margin: 0.3rem 0 0;
+    color: var(--color-muted);
+  }
+
+  /* full navy ink: the lighter grey was hard to read on orange */
+  .route-text {
+    margin: 0.3rem 0 0;
+    color: var(--color-text);
+    line-height: 1.45;
+  }
+
+  @media (max-width: 1023px) {
+    .route-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .route-stop {
+      grid-template-columns: 6rem 1fr;
+      gap: var(--space-sm);
+    }
+
+    .route-num {
+      font-size: 0.65rem;
+    }
+
+    .route-dot {
+      left: -0.3rem;
+      top: -0.3rem;
+      width: 0.6rem;
+      height: 0.6rem;
+    }
+  }
+</style>

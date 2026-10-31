@@ -1,0 +1,818 @@
+---
+// A loud, full-width "story band" in the middle of a page: a colour-shifted picture across the
+// whole screen with very large thin type over it. It breaks up the long white stretches and
+// carries a bit of the story, like the full-bleed bands on Colossal's mammoth and company pages
+// ("Reviving mammoths. Saving elephants.", "Lost but not gone forever", "Core values").
+//
+// Four layouts:
+//   echo       a few big words stacked down the middle, each with a small [ caption ]
+//              (Colossal's "LOST / but not gone forever / LOST")
+//   stats      a title, then big numbers on dots (Colossal's "5.5 million square miles")
+//   statement  a big line of type, then two or three short columns (Colossal's "Mission / Goal")
+//   split      big type running across a picture split into two halves, an optional subtitle and a
+//              numbered list on the right half (Colossal's "Bringing back the woolly mammoth")
+//   art        a title and numbers on the left, and a piece of artwork shown whole on the right in a
+//              thin offset frame, untouched (no type over it, no colour shift). The colour-shifted
+//              picture still fills the band behind it.
+//
+// Any layout can also take `figures`: a row of boxed numbers under it, each with a short line and its
+// source (used under FIND / FOLLOW / FILM on Home), joined to the words above by a thin line.
+//
+// Pictures: public/images/bands/story-*.jpg (2400 x 1350, made by stills_site/make_story.py).
+// Text in [brackets] is a placeholder to fill in later.
+import { imageUrl } from '../lib/images';
+import { keepDots, keepUnits } from '../lib/text';
+
+interface Item {
+  title: string;    // a number for stats ('05'), a word for echo ('Find'), a short heading for statement
+  text?: string;    // the line under it
+}
+
+interface Figure {
+  label: string;    // small [ label ] at the top of the box, e.g. 'Find'
+  value: string;    // the number
+  unit?: string;    // smaller text after it, e.g. 'a day'
+  text: string;
+  sources?: { label: string; href: string }[];
+}
+
+interface Art {
+  image: string;    // path inside public/images, e.g. 'sections/fgb-poster-art.jpg'
+  width: number;
+  height: number;
+  alt: string;
+  credit: string;   // shown under the frame, e.g. 'Art: ...'
+}
+
+interface Props {
+  variant: 'echo' | 'stats' | 'statement' | 'split' | 'art';
+  image: string;           // file name in public/images/bands/
+  position?: string;       // which part of the picture to keep on narrow screens
+  tag?: string;            // small [ label ] at the top left
+  title?: string;          // the big line (stats, statement, split, art)
+  subtitle?: string;       // a sentence beside or under the big line
+  items?: Item[];
+  art?: Art;               // the artwork for the 'art' layout
+  figures?: Figure[];      // a boxed row of numbers under the layout
+  source?: { label: string; href: string };  // where the facts come from, shown small at the bottom
+}
+
+const { variant, image, position = '50% 50%', tag, title, subtitle, items = [], art, figures = [], source } = Astro.props;
+const hasSlot = Astro.slots.has('default');
+const pad = (n: number) => String(n + 1).padStart(2, '0');
+---
+
+<section class:list={['story', `story--${variant}`]} style={variant === 'split' ? `--story-img: url(${imageUrl(`bands/${image}`)});` : undefined}>
+  <div class="story-media" aria-hidden="true">
+    <img src={imageUrl(`bands/${image}`)} alt="" width="2400" height="1350" loading="lazy" decoding="async" style={`object-position: ${position};`} data-pan="140" />
+  </div>
+
+  <!-- the lab-notebook margin: + marks and a rotated label, like Colossal's left rail -->
+  <div class="story-rail" aria-hidden="true">
+    <span>+</span><span>+</span><span>+</span>
+  </div>
+
+  <div class="container story-inner">
+    {tag && (
+      <div class="story-head">
+        <p class="label story-tag">[ {keepDots(tag)} ]</p>
+        <span class="story-hatch slashes" aria-hidden="true"></span>
+      </div>
+    )}
+
+    {variant === 'echo' && (
+      <ol class="echo" data-reveal-group>
+        {items.map((item) => (
+          <li class="echo-item">
+            <span class="story-word">{item.title}</span>
+            {item.text && <span class="label echo-cap">[ {keepUnits(item.text)} ]</span>}
+          </li>
+        ))}
+      </ol>
+    )}
+
+    {variant === 'stats' && (
+      <>
+        {title && <h2 class="story-title story-title--sm" data-reveal>{title}</h2>}
+        <dl class="stats" data-reveal-group>
+          {items.map((item) => (
+            <div class="stat">
+              <dt class="story-word stat-num">{item.title}</dt>
+              <dd class="stat-text"><span class="stat-dot" aria-hidden="true"></span>{keepUnits(item.text)}</dd>
+            </div>
+          ))}
+        </dl>
+      </>
+    )}
+
+    {variant === 'statement' && (
+      <>
+        {title && <h2 class="story-title" data-reveal>{title}</h2>}
+        {subtitle && <p class="story-sub" data-reveal>{keepUnits(subtitle)}</p>}
+        {items.length > 0 && (
+          <ol class="cols" data-reveal-group>
+            {items.map((item, i) => (
+              <li class="col">
+                <p class="label col-num"><span class="col-dot" aria-hidden="true"></span>{pad(i)}</p>
+                <h3 class="col-title">{item.title}</h3>
+                {item.text && <p class="col-text">{keepUnits(item.text)}</p>}
+              </li>
+            ))}
+          </ol>
+        )}
+      </>
+    )}
+
+    {variant === 'split' && (
+      <div class:list={['split', { 'split--short': !subtitle && items.length === 0 }]}>
+        {title && <h2 class="story-title story-title--split" data-reveal>{title}</h2>}
+        {subtitle && <p class="split-sub" data-reveal>{subtitle}</p>}
+        <div class="split-foot" data-reveal>
+          {items.length > 0 && (
+            <ol class="split-list">
+              {items.map((item, i) => (
+                <li><span class="label">{pad(i)}</span> {item.title}</li>
+              ))}
+            </ol>
+          )}
+          {hasSlot && <slot />}
+        </div>
+      </div>
+    )}
+
+    {variant === 'art' && art && (
+      <div class="art">
+        {title && <h2 class="story-title story-title--art" data-reveal>{title}</h2>}
+        <figure class="art-figure" data-reveal>
+          <span class="art-frame">
+            <img src={imageUrl(art.image)} alt={art.alt} width={art.width} height={art.height} loading="lazy" decoding="async" />
+          </span>
+          <figcaption class="label art-credit">[ {art.credit} ]</figcaption>
+        </figure>
+        <div class="art-side">
+          {items.length > 0 && (
+            <dl class="art-stats" data-reveal-group>
+              {items.map((item) => (
+                <div class="art-stat">
+                  <dt class="story-word art-num">{item.title}</dt>
+                  <dd class="art-text">{keepUnits(item.text)}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          <!-- the source sits right under the numbers it backs up -->
+          {source && variant !== 'art' && <a class="label story-src" href={source.href} target="_blank" rel="noopener">[ Source: {source.label} ]</a>}
+        </div>
+      </div>
+    )}
+
+    {figures.length > 0 && (
+      <dl class="story-figures" data-reveal-group>
+        {figures.map((figure, i) => (
+          <div class="story-figure">
+            <dt class="label story-figure-label">[ {pad(i)} · {figure.label} ]</dt>
+            <dd class="story-figure-value">{keepUnits(figure.value)}{figure.unit && <span class="story-figure-unit"> {figure.unit}</span>}</dd>
+            <dd class="story-figure-text">{keepUnits(figure.text)}</dd>
+            {figure.sources && figure.sources.length > 0 && (
+              <dd class="story-figure-srcs">
+                {figure.sources.map((src) => (
+                  <a class="label story-figure-src" href={src.href} target="_blank" rel="noopener">[ Source: {src.label} ]</a>
+                ))}
+              </dd>
+            )}
+          </div>
+        ))}
+      </dl>
+    )}
+
+    {hasSlot && variant !== 'split' && <div class="story-slot"><slot /></div>}
+    {source && variant !== 'art' && <a class="label story-src" href={source.href} target="_blank" rel="noopener">[ Source: {source.label} ]</a>}
+  </div>
+</section>
+
+<style>
+  .story {
+    /* text over the picture is always light */
+    --color-text: var(--color-white);
+    --color-muted: rgb(255 255 255 / 0.85);
+    --color-line: rgb(255 255 255 / 0.4);
+    position: relative;
+    overflow: hidden;
+    padding-block: var(--space-2xl);
+    min-height: clamp(36rem, 100svh, 64rem);
+    display: flex;
+    align-items: center;
+    color: var(--color-text);
+    background: var(--color-bg);
+  }
+
+  .story-media {
+    position: absolute;
+    inset: -70px 0;
+  }
+
+  .story-media img {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+  }
+
+  /* a light, even wash so white type reads anywhere on the picture */
+  .story-media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgb(6 18 31 / 0.18);
+  }
+
+  /* stats has its text on the left, so the left side gets a little more shade */
+  .story--stats .story-media::after {
+    background: linear-gradient(90deg, rgb(6 18 31 / 0.55) 0%, rgb(6 18 31 / 0.3) 55%, rgb(6 18 31 / 0.1) 100%);
+  }
+
+  /* statement: the big line on the left and the columns of text running right across the bottom,
+     so the shade is deeper on the left and along the bottom, where the smaller text sits */
+  .story--statement .story-media::after {
+    background:
+      linear-gradient(to top, rgb(6 18 31 / 0.6) 0%, rgb(6 18 31 / 0.25) 45%, transparent 70%),
+      linear-gradient(90deg, rgb(6 18 31 / 0.62) 0%, rgb(6 18 31 / 0.4) 55%, rgb(6 18 31 / 0.22) 100%);
+  }
+
+  /* art: the picture behind is toned down all over, so the artwork stays the loudest thing */
+  .story--art .story-media::after {
+    background: linear-gradient(90deg, rgb(6 18 31 / 0.8) 0%, rgb(6 18 31 / 0.72) 55%, rgb(6 18 31 / 0.68) 100%);
+  }
+
+  .story-rail {
+    position: absolute;
+    top: var(--space-xl);
+    bottom: var(--space-xl);
+    left: max(0.75rem, calc((100vw - var(--max-width)) / 2 - 2rem));
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: rgb(255 255 255 / 0.7);
+    pointer-events: none;
+  }
+
+  .story-inner {
+    position: relative;
+    width: 100%;
+  }
+
+  .story-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+  }
+
+  .story-tag {
+    margin: 0;
+    padding: 0.3rem 0.55rem;
+    border: 1px solid rgb(255 255 255 / 0.55);
+    color: var(--color-white);
+  }
+
+  .story-hatch {
+    flex: 0 0 8rem;
+    height: 0.9rem;
+    background-color: rgb(255 255 255 / 0.7);
+  }
+
+  /* Colossal's thin, wide, technical capitals: the display font at its lightest and widest */
+  .story-word,
+  .story-title {
+    font-family: var(--font-display);
+    font-weight: 200;
+    font-stretch: 125%;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 0.95;
+    color: var(--color-white);
+  }
+
+  .story-title {
+    max-width: 16ch;
+    margin: 0;
+    font-size: clamp(2.6rem, 0.8rem + 6.4vw, 8rem);
+    text-wrap: balance;
+  }
+
+  .story-title--sm {
+    font-size: clamp(2.2rem, 0.8rem + 4.4vw, 5.5rem);
+  }
+
+  .story-sub {
+    max-width: 34rem;
+    margin: var(--space-lg) 0 0;
+    font-size: var(--text-lg);
+    line-height: 1.5;
+  }
+
+  /* ---------- echo ---------- */
+
+  .echo {
+    display: grid;
+    gap: clamp(0.5rem, 2vw, 1.5rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    text-align: center;
+  }
+
+  .echo-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .echo .story-word {
+    font-size: clamp(4rem, 1rem + 13vw, 15rem);
+    line-height: 0.85;
+    /* the soft glow on Colossal's "LOST" */
+    text-shadow: 0 0 1.2rem rgb(255 255 255 / 0.55), 0 0 3.5rem rgb(255 255 255 / 0.35);
+  }
+
+  /* the small captions on a dark chip, so they read on the bright picture */
+  .echo-cap {
+    padding: 0.25rem 0.5rem;
+    color: var(--color-white);
+    background: rgb(6 18 31 / 0.6);
+  }
+
+  .story--echo .story-media::after {
+    background: rgb(6 18 31 / 0.32);
+  }
+
+  /* ---------- stats ---------- */
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-lg);
+    margin: var(--space-xl) 0 0;
+  }
+
+  .stat {
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-line);
+  }
+
+  .stat-num {
+    font-size: clamp(5rem, 2rem + 9vw, 12rem);
+    line-height: 0.85;
+  }
+
+  .stat-text {
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+    margin: var(--space-sm) 0 0;
+    font-size: var(--text-lg);
+    line-height: 1.4;
+  }
+
+  /* the orange ring with a dot in it, like Colossal's map callouts */
+  .stat-dot {
+    flex: none;
+    width: 0.9rem;
+    height: 0.9rem;
+    border: 2px solid var(--color-orange);
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2px transparent, inset 0 0 0 4px var(--color-orange);
+    translate: 0 0.1rem;
+  }
+
+  /* ---------- statement ---------- */
+
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: var(--space-lg) var(--space-xl);
+    max-width: 60rem;
+    margin: var(--space-xl) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .col {
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-line);
+  }
+
+  .col-num {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    color: var(--color-white);
+  }
+
+  .col-dot {
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 50%;
+    background: var(--color-lime);
+  }
+
+  .col-title {
+    margin: var(--space-sm) 0 0;
+    font-family: var(--font-display);
+    font-stretch: 112%;
+    font-weight: 500;
+    font-size: clamp(1.15rem, 0.9rem + 0.8vw, 1.6rem);
+    line-height: 1.1;
+    text-transform: uppercase;
+    color: var(--color-white);
+  }
+
+  .col-text {
+    margin: var(--space-sm) 0 0;
+    font-size: var(--text-lg);
+    line-height: 1.5;
+  }
+
+  /* ---------- split ---------- */
+
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'title title'
+      '. sub'
+      '. foot';
+    gap: var(--space-lg) var(--space-xl);
+  }
+
+  /* just a title and a button: the button sits under the title, on the left */
+  .split--short {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'title'
+      'foot';
+  }
+
+  .story-title--split {
+    grid-area: title;
+    max-width: none;
+    font-size: clamp(3rem, 0.6rem + 8.6vw, 11rem);
+  }
+
+  .split-sub {
+    grid-area: sub;
+    margin: 0;
+    font-size: clamp(1.25rem, 1rem + 1vw, 2rem);
+    line-height: 1.3;
+  }
+
+  /* the list and the button on a dark glassy panel, so the white type reads on the bright half */
+  .split-foot {
+    grid-area: foot;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: rgb(6 18 31 / 0.55);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+
+  .split-list {
+    display: grid;
+    gap: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--color-line);
+  }
+
+  .split-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.8rem;
+    padding-block: 0.6rem;
+    border-bottom: 1px solid var(--color-line);
+    font-family: var(--font-display);
+    font-stretch: 112%;
+    font-weight: 500;
+    font-size: clamp(1.05rem, 0.85rem + 0.6vw, 1.4rem);
+    text-transform: uppercase;
+  }
+
+  /* ---------- art ---------- */
+
+  /* title and numbers on the left, the artwork across two rows on the right */
+  .art {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'title fig'
+      'stats fig';
+    gap: var(--space-lg) var(--space-xl);
+    align-items: center;
+  }
+
+  /* the title and numbers run from the top of the column, straight under the tag */
+  .story-title--art {
+    grid-area: title;
+    align-self: start;
+    max-width: 14ch;
+    font-size: clamp(2rem, 0.9rem + 2.6vw, 3.6rem);
+  }
+
+  .art-side {
+    grid-area: stats;
+    align-self: start;
+  }
+
+  .art-stats {
+    margin: 0;
+  }
+
+  .art-side .story-src {
+    margin-top: var(--space-md);
+  }
+
+  .art-stat {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: var(--space-md);
+    align-items: baseline;
+    padding-block: var(--space-sm);
+    border-top: 1px solid var(--color-line);
+  }
+
+  .art-stat:last-child {
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .art-num {
+    font-size: clamp(2.6rem, 1.2rem + 2.6vw, 4.2rem);
+    line-height: 1;
+  }
+
+  .art-text {
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  /* the room on the right and below is for the offset frame, so it never runs past the page margin */
+  .art-figure {
+    grid-area: fig;
+    margin: 0;
+    padding: 0 0.9rem 0.9rem 0;
+  }
+
+  .art-frame {
+    position: relative;
+    display: block;
+    isolation: isolate;
+  }
+
+  .art-frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* a thin lime frame set off down and to the right, behind the picture */
+  .art-frame::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    translate: 0.9rem 0.9rem;
+    border: 1px solid var(--color-lime);
+  }
+
+  .art-credit {
+    margin: 1.4rem 0 0;
+    color: var(--color-white);
+  }
+
+  /* ---------- figures: boxed numbers under the layout ---------- */
+
+  .story-figures {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    max-width: 68rem;
+    margin: calc(var(--space-xl) + 2rem) auto 0;
+    border: 1px solid rgb(255 255 255 / 0.6);
+    background: rgb(6 18 31 / 0.55);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+
+  /* a thin line down from the words to the box, with a small square where it lands */
+  .story-figures::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    height: calc(var(--space-xl) + 2rem);
+    border-left: 1px solid rgb(255 255 255 / 0.6);
+  }
+
+  .story-figures::after {
+    content: '';
+    position: absolute;
+    top: -0.3rem;
+    left: calc(50% - 0.3rem);
+    width: 0.6rem;
+    height: 0.6rem;
+    background: var(--color-lime);
+  }
+
+  .story-figure {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-md) var(--space-md) var(--space-sm);
+    text-align: left;
+  }
+
+  .story-figure + .story-figure {
+    border-left: 1px solid rgb(255 255 255 / 0.35);
+  }
+
+  .story-figure dd {
+    margin: 0;
+  }
+
+  .story-figure-label {
+    color: var(--color-lime);
+  }
+
+  .story-figure-value {
+    font-family: var(--font-display);
+    font-weight: 200;
+    font-stretch: 125%;
+    font-size: clamp(2.4rem, 1.2rem + 2.4vw, 3.75rem);
+    line-height: 1;
+    color: var(--color-white);
+    white-space: nowrap;
+  }
+
+  .story-figure-unit {
+    font-size: 0.4em;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .story-figure-text {
+    line-height: 1.45;
+  }
+
+  .story-figure-srcs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.75rem;
+    margin-top: auto !important;
+  }
+
+  .story-figure-src {
+    display: inline-block;
+    padding-block: 0.3rem; /* an easier tap target on phones */
+    color: var(--color-white);
+    text-decoration: none;
+  }
+
+  .story-figure-src:hover {
+    text-decoration: underline;
+  }
+
+  .story-src {
+    display: inline-block;
+    margin-top: var(--space-lg);
+    padding-block: 0.3rem;
+    color: var(--color-white);
+    text-decoration: none;
+  }
+
+  .story-src:hover {
+    text-decoration: underline;
+  }
+
+  .story-slot {
+    margin-top: var(--space-xl);
+  }
+
+  /* under the stacked words, the button sits in the middle too */
+  .story--echo .story-slot {
+    display: flex;
+    justify-content: center;
+  }
+
+  /* ---------- Tablet and phone ---------- */
+
+  @media (max-width: 900px) {
+    .stats {
+      grid-template-columns: 1fr;
+      gap: var(--space-md);
+    }
+
+    .split:not(.split--short) {
+      grid-template-columns: 1fr;
+      grid-template-areas: 'title' 'sub' 'foot';
+    }
+
+    /* title, then the artwork, then the numbers */
+    .art {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+      grid-template-areas: 'title' 'fig' 'stats';
+    }
+
+    .story-rail {
+      display: none;
+    }
+
+    /* the type covers the whole picture on narrow screens, so darken all of it evenly */
+    .story .story-media::after {
+      background: rgb(6 18 31 / 0.42);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .story {
+      min-height: 0;
+    }
+
+    /* long words like EXPLORATION have to fit across a phone */
+    .story-title,
+    .story-title--split {
+      font-size: clamp(1.9rem, 0.9rem + 6vw, 2.6rem);
+      font-stretch: 112%;
+    }
+
+    .story-title--sm {
+      font-size: clamp(1.8rem, 0.9rem + 5.5vw, 2.4rem);
+    }
+
+    .story--statement .story-media::after {
+      background: rgb(6 18 31 / 0.62);
+    }
+
+    /* split: the two halves of the picture stack on phones instead of sitting side by side (each
+       would only be a sliver): the left half behind the title, the right half behind the list, with
+       the seam running across the middle */
+    .story--split .story-media img {
+      object-position: 0% 50% !important;
+    }
+
+    .story--split .story-media::before {
+      content: '';
+      position: absolute;
+      inset: 52% 0 0;
+      background: var(--story-img) right center / auto 200% no-repeat;
+    }
+
+    /* the full width on phones, so titles break into fewer, fuller lines */
+    .story-title,
+    .story-title--art {
+      max-width: none;
+    }
+
+    .story-hatch {
+      flex-basis: 4rem;
+    }
+
+    .stat-num {
+      font-size: 5rem;
+    }
+
+    .story-figures {
+      grid-template-columns: 1fr;
+    }
+
+    .story-figure + .story-figure {
+      border-left: 0;
+      border-top: 1px solid rgb(255 255 255 / 0.35);
+    }
+
+    .art-stat {
+      grid-template-columns: 5.5rem minmax(0, 1fr);
+      gap: var(--space-sm);
+    }
+
+    .art-num {
+      font-size: 2.6rem;
+    }
+
+    .story-sub,
+    .col-text,
+    .stat-text {
+      font-size: var(--text-base);
+    }
+  }
+</style>

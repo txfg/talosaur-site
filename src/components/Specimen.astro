@@ -1,0 +1,116 @@
+---
+// A big cut-out specimen (a picture with a see-through background) that runs off the side of the
+// screen, like the cut-out animals on Colossal's pages. Purely decorative: screen readers skip it.
+//
+// Put it first inside a section that has `position: relative` (every .band does). It sits behind
+// the section's content, so cards and photos can overlap it.
+//
+//   <Specimen image="radiolarian.webp" label="Radiolarian · HMS Challenger, 1887" />
+//
+// Pictures live in public/images/accents/. Edited (false-colour) pictures are for nature only.
+import { imageUrl } from '../lib/images';
+
+interface Props {
+  image: string;              // file name in public/images/accents/ (a .webp or .png with transparency)
+  label?: string;             // short label in [ brackets ] next to it
+  side?: 'left' | 'right';    // which edge of the screen it runs off
+  top?: string;               // distance from the top of the section, e.g. '2rem'
+  size?: string;              // width, e.g. 'clamp(16rem, 34vw, 32rem)'
+  width?: number;             // the picture's real size in pixels (keeps the page from jumping as it loads)
+  height?: number;
+  drift?: number;             // how far it drifts as you scroll (data-drift, see BaseLayout.astro)
+}
+
+const {
+  image,
+  label,
+  side = 'right',
+  top = '2rem',
+  size = 'clamp(15rem, 34vw, 32rem)',
+  width = 1080,
+  height = 1060,
+  drift = 60,
+} = Astro.props;
+---
+
+<figure class:list={['specimen', `specimen--${side}`]} style={`--top: ${top}; --size: ${size};`} aria-hidden="true">
+  <img src={imageUrl(`accents/${image}`)} alt="" width={width} height={height} loading="lazy" decoding="async" data-drift={drift} />
+  {label && <figcaption class="label specimen-label">[ {label} ]</figcaption>}
+</figure>
+
+<style>
+  .specimen {
+    position: absolute;
+    z-index: 0;              /* behind the section's content (give that content position: relative; z-index: 1) */
+    top: var(--top);
+    width: var(--size);
+    margin: 0;
+    pointer-events: none;
+  }
+
+  /* About a quarter of it hangs off the edge of the screen (main clips it, so no sideways scroll) */
+  .specimen--right {
+    right: calc(var(--size) * -0.24);
+  }
+
+  .specimen--left {
+    left: calc(var(--size) * -0.24);
+  }
+
+  .specimen img {
+    width: 100%;
+    height: auto;
+  }
+
+  /* The label sits on the side facing the page, with a "+" mark like Colossal's margin notes */
+  .specimen-label {
+    position: absolute;
+    top: 8%;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+
+  .specimen--right .specimen-label {
+    right: calc(100% - 3rem);
+  }
+
+  .specimen--left .specimen-label {
+    left: calc(100% - 3rem);
+  }
+
+  .specimen-label::before {
+    content: '+';
+    margin-right: 0.6rem;
+    color: var(--color-lime);
+  }
+
+  /* Narrower screens: further off the edge, so it stays clear of big headings */
+  @media (max-width: 1199px) {
+    .specimen--right {
+      right: calc(var(--size) * -0.42);
+    }
+
+    .specimen--left {
+      left: calc(var(--size) * -0.42);
+    }
+  }
+
+  /* Phones: smaller and further off the edge, so it frames the section instead of covering it */
+  @media (max-width: 760px) {
+    .specimen {
+      width: 58vw;
+    }
+
+    .specimen--right {
+      right: -22vw;
+    }
+
+    .specimen--left {
+      left: -22vw;
+    }
+
+    .specimen-label {
+      display: none;
+    }
+  }
+</style>

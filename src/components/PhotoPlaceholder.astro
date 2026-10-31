@@ -1,0 +1,128 @@
+---
+// Stands in for a photo the team still needs to take or find. It fills its parent (which sets
+// the shape), and says what the photo should show, so nobody mistakes a borrowed picture for
+// the real thing. As soon as the photo file is added, the page shows the photo instead.
+//
+//   <PhotoPlaceholder label="Turtle in the pool" />
+//
+// Every placeholder on the site is listed in PLACEHOLDERS.md with the file name to save.
+interface Props {
+  label: string;      // what the photo should show, e.g. 'the whole team'
+  file?: string;      // the file name it goes in, shown small (optional)
+  compact?: boolean;  // for small thumbnails: a small frame mark and the words, nothing else
+}
+
+const { label, file, compact = false } = Astro.props;
+---
+
+<div class:list={['ph', { 'ph--compact': compact }]} aria-hidden="true">
+  {!compact && <span class="ph-corner ph-corner--tl"></span>}
+  {!compact && <span class="ph-corner ph-corner--br"></span>}
+  {compact && <span class="ph-frame"></span>}
+  <p class="label ph-tag">{compact ? 'Photo to come' : '[ Photo to come ]'}</p>
+  <p class="ph-what">{label}</p>
+  {file && !compact && <p class="label ph-file">{file}</p>}
+</div>
+
+<style>
+  /* Always dark, with the logo's diagonal stripes very faint behind it, on any band */
+  .ph {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: var(--space-md);
+    text-align: center;
+    color: var(--light-bg);
+    background:
+      repeating-linear-gradient(135deg, rgb(232 241 245 / 0.06) 0 1px, transparent 1px 14px),
+      linear-gradient(160deg, #0c2236, #06121f);
+  }
+
+  .ph-corner {
+    position: absolute;
+    width: 1.1rem;
+    height: 1.1rem;
+    border: 0 solid rgb(232 241 245 / 0.5);
+  }
+
+  .ph-corner--tl {
+    top: 0.75rem;
+    left: 0.75rem;
+    border-top-width: 1px;
+    border-left-width: 1px;
+  }
+
+  .ph-corner--br {
+    right: 0.75rem;
+    bottom: 0.75rem;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+  }
+
+  .ph-tag {
+    margin: 0;
+    color: var(--color-lime);
+  }
+
+  .ph-what {
+    max-width: 22ch;
+    margin: 0;
+    font-family: var(--font-display);
+    font-stretch: var(--display-width);
+    word-spacing: 0.1em; /* the condensed face squeezes the spaces too */
+    font-weight: 800;
+    font-size: clamp(1rem, 0.8rem + 0.8vw, 1.5rem);
+    line-height: 1.05;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+
+  /* Compact: for thumbnails a few centimetres wide. A small square frame mark (like a viewfinder),
+     then the words in small type, so it reads as "photo to come" at a glance without crowding. */
+  .ph--compact {
+    gap: 0.3rem;
+    padding: 0.5rem;
+  }
+
+  .ph-frame {
+    width: 1.1rem;
+    height: 0.8rem;
+    border: 1px solid rgb(232 241 245 / 0.6);
+    border-radius: 2px;
+    background: radial-gradient(circle, rgb(232 241 245 / 0.6) 0 22%, transparent 26%);
+  }
+
+  .ph--compact .ph-tag {
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+
+  .ph--compact .ph-what {
+    max-width: none;
+    font-family: var(--font-body);
+    font-stretch: 100%;
+    font-weight: 500;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    text-transform: none;
+    color: rgb(232 241 245 / 0.8);
+  }
+
+  /* in the smallest thumbnails (phones) the frame mark says "photo" on its own */
+  @media (max-width: 600px) {
+    .ph--compact .ph-tag {
+      display: none;
+    }
+  }
+
+  .ph-file {
+    margin: 0;
+    color: rgb(232 241 245 / 0.55);
+    font-size: 0.6rem;
+    text-transform: none;
+  }
+</style>

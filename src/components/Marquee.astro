@@ -1,0 +1,116 @@
+---
+// A slow, endless strip of very large thin words running across the whole screen, with a ring
+// between them (orange, or one colour per word). Every other word is drawn as an outline. Used on Who we are to list the
+// team's disciplines between the two rows of people.
+//
+//   <Marquee words={['Mechanical', 'Hydraulics', 'Ocean']} />
+//
+// The words are repeated so the strip never runs out, and it is decorative (the same roles are on
+// the cards), so screen readers skip it. For visitors with "reduce motion" turned on, it doesn't move:
+// it stops as one line running off the right edge.
+interface Props {
+  words: string[];
+  colors?: string[]; // a colour for the ring after each word (CSS colours, in the same order); orange if left out
+  speed?: number;   // seconds for one full loop (bigger = slower)
+}
+
+const { words, colors = [], speed = 50 } = Astro.props;
+
+// Enough copies to cover a wide screen; the whole run is drawn twice so the loop is seamless
+const run = Array.from({ length: Math.max(2, Math.ceil(8 / Math.max(words.length, 1))) }, () => words).flat();
+---
+
+<div class="marquee" aria-hidden="true" style={`--marquee-speed: ${speed}s;`}>
+  <div class="marquee-track">
+    {[0, 1].map((copy) => (
+      <ul class:list={['marquee-run', { 'marquee-run--copy': copy === 1 }]}>
+        {run.map((word, i) => (
+          <li class:list={['marquee-word', { 'marquee-word--outline': i % 2 === 1, 'marquee-word--repeat': i >= words.length }]}>
+            {word}<span class="marquee-ring" style={colors.length ? `--ring: ${colors[i % words.length]};` : undefined}></span>
+          </li>
+        ))}
+      </ul>
+    ))}
+  </div>
+</div>
+
+<style>
+  .marquee {
+    overflow: hidden;
+    padding-block: clamp(1rem, 2vw, 1.75rem);
+    border-block: 1px solid var(--color-line);
+  }
+
+  .marquee-track {
+    display: flex;
+    width: max-content;
+    animation: marquee var(--marquee-speed) linear infinite;
+  }
+
+  .marquee-run {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Colossal's thin, wide capitals, like the story bands */
+  .marquee-word {
+    display: flex;
+    align-items: center;
+    font-family: var(--font-display);
+    font-weight: 200;
+    font-stretch: 125%;
+    font-size: clamp(3rem, 1rem + 7vw, 8.5rem);
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--color-text);
+  }
+
+  .marquee-word--outline {
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--color-text);
+  }
+
+  /* the orange ring with a dot in it, as on the story band numbers */
+  .marquee-ring {
+    flex: none;
+    width: 0.22em;
+    height: 0.22em;
+    margin-inline: 0.45em;
+    border: 2px solid var(--ring, var(--color-orange));
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 0.05em transparent, inset 0 0 0 0.09em var(--ring, var(--color-orange));
+  }
+
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* smaller on phones, so a whole word or two fits across */
+  @media (max-width: 760px) {
+    .marquee-word {
+      font-size: clamp(2.25rem, 1rem + 6vw, 3rem);
+    }
+  }
+
+  /* For people who ask for less motion the strip stands still, one line running off the right edge
+     like a frame of the moving version; its right end fades out, so the word cut off at the screen
+     edge reads as a strip that carries on, not a mistake */
+  @media (prefers-reduced-motion: reduce) {
+    /* standing still, the first word starts on the page margin (on wide screens the page is
+       centred, so the margin sits further in) */
+    .marquee-track {
+      animation: none;
+      padding-left: calc(max(0px, (100vw - var(--max-width)) / 2) + var(--gutter));
+    }
+
+    .marquee {
+      -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 6rem), transparent);
+      mask-image: linear-gradient(to right, #000 calc(100% - 6rem), transparent);
+    }
+  }
+</style>

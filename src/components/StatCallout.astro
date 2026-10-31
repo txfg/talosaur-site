@@ -5,9 +5,10 @@ interface Props {
   unit?: string;   // smaller text after the number, e.g. 'a day'
   caption: string;
   index?: number;  // small "01", "02"... label
+  source?: { label: string; href: string }; // shown as a small [ Source: ... ] link under the caption
 }
 
-const { value, unit, caption, index } = Astro.props;
+const { value, unit, caption, index, source } = Astro.props;
 ---
 
 <div class="stat">
@@ -16,6 +17,9 @@ const { value, unit, caption, index } = Astro.props;
     {value}{unit && <span class="stat-unit"> {unit}</span>}
   </p>
   <p class="stat-caption">{caption}</p>
+  {source && (
+    <a class="label stat-source" href={source.href} target="_blank" rel="noopener">[ Source: {source.label} ]</a>
+  )}
 </div>
 
 <style>
@@ -35,6 +39,7 @@ const { value, unit, caption, index } = Astro.props;
     margin: 0;
     font-family: var(--font-display);
     font-stretch: var(--display-width);
+    word-spacing: 0.1em; /* the condensed face squeezes the spaces too */
     font-weight: 800;
     font-size: clamp(3rem, 1rem + 4.2vw, 6rem);
     line-height: 0.9;
@@ -55,5 +60,18 @@ const { value, unit, caption, index } = Astro.props;
     max-width: 24rem;
     margin: 0;
     color: var(--color-muted);
+  }
+
+  /* padded so it's a comfortable tap target on a phone */
+  .stat-source {
+    align-self: flex-start;
+    padding-block: 0.3rem;
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  .stat-source:hover,
+  .stat-source:focus-visible {
+    text-decoration: underline;
   }
 </style>

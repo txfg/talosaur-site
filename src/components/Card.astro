@@ -4,8 +4,10 @@
 //
 // Every card has the same shape, so a row of cards always lines up. If the photo file
 // is missing from public/images/, a quiet dark panel of the same shape takes its place.
-import { imageExists } from '../lib/images';
+import { keepUnits } from '../lib/text';
+import { imageExists, imageUrl } from '../lib/images';
 import { url } from '../lib/url';
+import PhotoPlaceholder from './PhotoPlaceholder.astro';
 
 interface Props {
   title: string;
@@ -15,18 +17,27 @@ interface Props {
   photoLabel?: string; // what the photo shows (used as alt text)
   index?: number;      // shows a small "01", "02"... in the card
   ratio?: string;      // photo shape, e.g. '4 / 3' or '16 / 9'
+  feature?: boolean;   // true = the big lead card in a feature layout (larger title)
+  badge?: string;      // small sticker on the photo, e.g. 'Live' (shows with a red dot)
+  standIn?: string;    // what the real photo should show, e.g. 'the whole team'. Until the photo file
+                       // exists, the card shows a "photo to come" panel with this text
 }
 
-const { title, text, href, photo, photoLabel = title, index, ratio = '4 / 3' } = Astro.props;
+const { title, text, href, photo, photoLabel = title, index, ratio = '4 / 3', feature = false, badge, standIn } = Astro.props;
+// Titles are shown in capitals; these words keep their own spelling (eDNA would otherwise read "EDNA")
+const KEEP_CASE = /(eDNA)/;
+const titleParts = title.split(KEEP_CASE).map((part) => ({ part, keep: KEEP_CASE.test(part) }));
 const hasPhoto = !!photo && imageExists(photo);
 const isExternal = href.startsWith('http');
 const isPlaceholderLink = href.startsWith('[');
 const num = index !== undefined ? String(index).padStart(2, '0') : undefined;
 ---
 
-<article class="card">
-  <div class="card-media" style={`aspect-ratio: ${ratio};`}>
-    {hasPhoto && <img src={url(`/images/${photo}`)} alt={photoLabel} loading="lazy" decoding="async" />}
+<article class:list={['card', { 'card--feature': feature }]}>
+  <div class:list={['card-media', { 'card-media--pending': !hasPhoto && standIn }]} style={`aspect-ratio: ${ratio};`}>
+    {hasPhoto && <img src={imageUrl(photo)} alt={photoLabel} loading="lazy" decoding="async" />}
+    {!hasPhoto && standIn && <PhotoPlaceholder label={standIn} file={photo} />}
+    {badge && <span class="card-badge label"><span class="card-badge-dot" aria-hidden="true"></span>{badge}</span>}
   </div>
 
   <div class="card-body">
@@ -40,16 +51,16 @@ const num = index !== undefined ? String(index).padStart(2, '0') : undefined;
     </p>
     <h3 class="card-title">
       {isPlaceholderLink ? (
-        title
+        titleParts.map(({ part, keep }) => (keep ? <span class="keep-case">{part}</span> : part))
       ) : (
         <a
           href={url(href)}
           class="card-link"
           {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-        >{title}</a>
+        >{titleParts.map(({ part, keep }) => (keep ? <span class="keep-case">{part}</span> : part))}</a>
       )}
     </h3>
-    <p class="card-text">{text}</p>
+    <p class="card-text">{keepUnits(text)}</p>
   </div>
 </article>
 
@@ -60,8 +71,9 @@ const num = index !== undefined ? String(index).padStart(2, '0') : undefined;
     flex-direction: column;
   }
 
-  /* The photo. overflow: hidden keeps the zoom-on-hover inside the frame. */
+  /* The photo. Its color glitch is baked into the image file (static, like the page headers). */
   .card-media {
+    position: relative; /* so the badge can sit in its corner */
     width: 100%;
     overflow: hidden;
     border-radius: var(--radius);
@@ -69,10 +81,10 @@ const num = index !== undefined ? String(index).padStart(2, '0') : undefined;
   }
 
   .card-media img {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover; /* fill the frame, cropping the edges if the photo is a different shape */
-    transition: transform 700ms var(--ease);
   }
 
   .card-body {
@@ -106,6 +118,10 @@ const num = index !== undefined ? String(index).padStart(2, '0') : undefined;
     transition: transform var(--duration) var(--ease);
   }
 
+  .keep-case {
+    text-transform: none;
+  }
+
   .card-title {
     font-size: clamp(1.4rem, 1.1rem + 0.9vw, 1.9rem);
     transition: color var(--duration) var(--ease);
@@ -131,9 +147,34 @@ const num = index !== undefined ? String(index).padStart(2, '0') : undefined;
 
   /* ---------- Hover ---------- */
 
-  .card:hover .card-media img {
-    transform: scale(1.04);
+  /* Badge: a small dark pill in the photo's top-left corner, e.g. "● LIVE".
+     It always uses the dark palette, so it reads the same on light and dark bands. */
+  /* inset past the placeholder's corner bracket, so the two don't touch */
+  .card-badge {
+    position: absolute;
+    top: calc(var(--space-sm) + 0.6rem);
+    left: calc(var(--space-sm) + 0.6rem);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.45em 0.9em;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--light-text) 80%, transparent);
+    color: var(--light-bg);
   }
+
+  .card-badge-dot {
+    width: 0.6em;
+    height: 0.6em;
+    border-radius: 50%;
+    background: var(--color-live);
+  }
+
+  /* Feature card: same parts, bigger title (the text stays the same size as the cards beside it) */
+  .card--feature .card-title {
+    font-size: clamp(1.8rem, 1.2rem + 1.8vw, 3rem);
+  }
+
 
   .card:hover .card-arrow {
     transform: translateX(6px);

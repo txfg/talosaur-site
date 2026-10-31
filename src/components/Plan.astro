@@ -1,0 +1,161 @@
+---
+// What we're doing: the plan in one block, used on the Home page (Section 02, right after
+// "Life at 50–300 m is barely watched").
+//   1. a big statement with a phrase or two in colour boxes (Statement.astro)
+//   2. the plan as a dive, four steps that each sit a little deeper, with Turtle's silhouette riding
+//      the line as you scroll (Roadmap.astro)
+//   3. "What we'll offer": a dark panel with vehicles to buy, research to use and surveys on request,
+//      and a "Talk to us" button (nothing is sold on the site)
+// All the text is `plan` in src/data/home.ts. The panel has id="offer", so a link to #offer lands on it.
+import Statement from './Statement.astro';
+import Roadmap from './Roadmap.astro';
+import { url } from '../lib/url';
+import { plan } from '../data/home';
+---
+
+<Statement tag={plan.tag} headline={plan.headline} text={plan.text} />
+
+<div class="plan-roadmap">
+  <Roadmap steps={plan.steps} depth={plan.depth} />
+</div>
+
+<!-- A dark panel with a lime corner square, like the founder's description box on Who we are -->
+<div class="offer" id="offer">
+  <div class="offer-head" data-reveal>
+    <p class="label offer-tag">[ {plan.offer.tag} ]</p>
+    <h3 class="offer-title">{plan.offer.title}</h3>
+  </div>
+  <ol class="offer-list" data-reveal-group>
+    {plan.offer.items.map((item, i) => (
+      <li class="offer-item">
+        <p class="label offer-item-tag"><span class="offer-letter">{String.fromCharCode(65 + i)}</span> {item.tag}</p>
+        <h4 class="offer-item-title">{item.title}</h4>
+        <p class="offer-item-text">{item.text}</p>
+      </li>
+    ))}
+  </ol>
+  <a class="button offer-cta" href={url(plan.offer.cta.href)}>{plan.offer.cta.label} <span aria-hidden="true">→</span></a>
+</div>
+
+<style>
+  .plan-roadmap {
+    margin-top: var(--space-2xl);
+  }
+
+  /* ---------- What we'll offer ---------- */
+
+  .offer {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    gap: var(--space-lg) var(--space-xl);
+    margin-top: var(--space-2xl);
+    padding: clamp(1.75rem, 4vw, 4rem);
+    color: var(--light-bg);
+    background: var(--light-text);
+    scroll-margin-top: calc(var(--header-height) + 1rem);
+    /* inside the panel, labels, lines and the button switch to their versions for dark */
+    --color-muted: #8fa8b8;
+    --color-line: rgb(232 241 245 / 0.25);
+    --color-accent: #3de0d0;
+    --color-accent-ink: #06121f;
+  }
+
+  /* lime square on the corner, as on the founder's box */
+  .offer::before {
+    content: '';
+    position: absolute;
+    top: -0.5rem;
+    left: -0.5rem;
+    width: 1rem;
+    height: 1rem;
+    background: var(--color-lime);
+  }
+
+  .offer-tag {
+    margin: 0;
+    color: var(--color-lime);
+  }
+
+  .offer-title {
+    margin-top: var(--space-sm);
+    font-size: var(--text-2xl);
+    line-height: 0.95;
+    color: var(--light-bg);
+  }
+
+  .offer-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-lg);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .offer-item {
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-line);
+  }
+
+  .offer-item-tag {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .offer-letter {
+    display: inline-grid;
+    place-items: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    color: var(--light-text);
+    background: var(--color-orange);
+  }
+
+  /* the same big condensed capitals as the other headings (h4 isn't styled site-wide) */
+  .offer-item-title {
+    margin: var(--space-sm) 0 0;
+    font-family: var(--font-display);
+    font-stretch: var(--display-width);
+    word-spacing: 0.1em; /* the condensed face squeezes the spaces too */
+    font-weight: 800;
+    font-size: clamp(1.4rem, 1rem + 0.9vw, 2rem);
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--light-bg);
+  }
+
+  .offer-item-text {
+    margin: var(--space-xs) 0 0;
+    line-height: 1.5;
+  }
+
+  .offer-cta {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  @media (max-width: 1023px) {
+    .offer {
+      grid-template-columns: 1fr;
+    }
+
+    .offer-cta {
+      grid-column: auto;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .offer-list {
+      grid-template-columns: 1fr;
+      gap: var(--space-md);
+    }
+
+    /* the lime square sits inside the page margin */
+    .offer::before {
+      left: 0;
+    }
+  }
+</style>

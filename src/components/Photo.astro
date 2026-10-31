@@ -3,7 +3,7 @@
 //
 // Usage: <Photo file="home-turtle.jpg" label="Turtle AUV in the water" />
 // Renders nothing if the file doesn't exist, so a missing photo never leaves a gap.
-import { imageExists } from '../lib/images';
+import { imageExists, imageUrl } from '../lib/images';
 import { url } from '../lib/url';
 
 interface Props {
@@ -17,7 +17,7 @@ const { file, label, ratio = '4 / 3' } = Astro.props;
 
 {imageExists(file) && (
   <div class="photo" style={`aspect-ratio: ${ratio};`}>
-    <img src={url(`/images/${file}`)} alt={label} loading="lazy" decoding="async" />
+    <img src={imageUrl(file)} alt={label} loading="lazy" decoding="async" />
   </div>
 )}
 

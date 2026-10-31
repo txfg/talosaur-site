@@ -2,54 +2,129 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HeroVideo from '../components/HeroVideo.astro';
 import SectionHeader from '../components/SectionHeader.astro';
+import Plan from '../components/Plan.astro';
+import StoryBand from '../components/StoryBand.astro';
+import PhotoBand from '../components/PhotoBand.astro';
 import Card from '../components/Card.astro';
-import { heroCards, featuredHeading, featuredCards, helpButtons, interestedCards } from '../data/home';
+import Specimen from '../components/Specimen.astro';
+import { imageUrl, imageExists } from '../lib/images';
+import { heroCards, featuredHeading, featuredCards, helpButtons, interestedCards, echoFigures } from '../data/home';
+import { explored } from '../data/problem';
 import { getSortedNews, formatNewsDate } from '../lib/news';
 import { url } from '../lib/url';
 
 // The four newest news entries (newest first)
 const latestNews = (await getSortedNews()).slice(0, 4);
 const pad = (n: number) => String(n).padStart(2, '0');
+
+// While none of the featured photos exist yet, the row sits level with shorter panels (a staircase of
+// three empty panels looks half-loaded). The steps come back as soon as one photo is added.
+const featuredPending = featuredCards.every((card) => !imageExists(card.photo));
 ---
 
 <BaseLayout headerOverlay>
   <HeroVideo />
 
-  <!-- Section 01: headline and intro -->
-  <section id="intro" class="container section intro">
-    <SectionHeader number={1} />
-    <div class="intro-grid">
-      <h1 class="intro-title" data-reveal>Life at <span class="nowrap">50–300&nbsp;m</span> is barely watched.</h1>
-      <div class="intro-body" data-reveal>
-        <p class="intro-text">
-          The ocean's twilight zone is too deep for divers and too costly to visit often.
-          Talosaur is a Texas-based student team building a low-cost underwater robot that
-          finds, follows and films marine life there.
-        </p>
-        <a class="button" href={url('/the-problem')}>Read more <span aria-hidden="true">→</span></a>
+  <!-- Light band: Sections 01 and 02 (white after the dark video, like Colossal) -->
+  <div class="band theme-light">
+    <!-- Section 01: headline and intro -->
+    <section id="intro" class="container section intro">
+      <SectionHeader number={1} />
+      <div class="intro-grid">
+        <h1 class="intro-title" data-reveal>Life at <span class="nowrap">50–300&nbsp;m</span> is barely watched.</h1>
+        <div class="intro-body" data-reveal>
+          <p class="intro-text">
+            The ocean's twilight zone is too deep for divers and too costly to visit often.
+            Talosaur is a Texas-based student team building a low-cost underwater robot that
+            finds, follows and films marine life there.
+          </p>
+          <a class="button" href={url('/the-problem')}>Read more <span aria-hidden="true">→</span></a>
+          <!-- two figures from The Problem (explored in src/data/problem.ts), as still pictures: the dotted
+               Earth with the mapped share lit, and how little of the deep seafloor anyone has seen -->
+          <div class="intro-figures">
+            <img class="intro-globe" src={imageUrl('figures/globe-mapped.svg')} alt="" width="600" height="600" loading="lazy" decoding="async" />
+            <div class="intro-stats">
+              <p class="intro-stat">
+                <span class="intro-fig-value">{explored.mapped.value}</span>
+                <span class="intro-fig-text">of the seafloor is mapped in detail.</span>
+              </p>
+              <p class="intro-stat">
+                <span class="intro-fig-value">{explored.seen.value}</span>
+                <span class="intro-fig-text">of the deep seafloor has ever been seen.</span>
+              </p>
+              <a class="label intro-fig-src" href={url('/the-problem')}>See the figures <span aria-hidden="true">→</span></a>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Section 02: three cards -->
-  <section class="container section">
-    <SectionHeader number={2} />
-    <div class="card-grid" data-reveal-group>
-      {heroCards.map((card, i) => <Card {...card} index={i + 1} ratio="4 / 3" />)}
+    <!-- A thin, long picture between Section 01 and 02, like the panoramic "breather" strips between
+         text blocks on Colossal's pages: a school of fish (Pexels) in violet with lime highlights
+         (public/images/bands/strip-school.jpg, 2400 x 525, made by stills_site/make_strip.py) -->
+    <div class="container strip-wrap">
+      <figure class="strip" aria-hidden="true" data-drift="40">
+        <img src={imageUrl('bands/strip-school.jpg')} alt="" width="2400" height="525" loading="lazy" decoding="async" />
+        <span class="strip-corner strip-corner--tl"></span>
+        <span class="strip-corner strip-corner--br"></span>
+      </figure>
     </div>
-  </section>
 
-  <!-- Section 03: featured content -->
-  <section class="container section">
-    <SectionHeader number={3} title={featuredHeading} />
-    <div class="card-grid" data-reveal-group>
-      {featuredCards.map((card, i) => <Card {...card} index={i + 1} ratio="16 / 9" />)}
-    </div>
-  </section>
+    <!-- Section 02: what we're doing. The plan, right after "Life at 50–300 m is barely watched":
+         where Turtle and the eDNA work are heading, and what we'll offer (src/components/Plan.astro,
+         text in src/data/home.ts). id="plan" so other pages can link straight here (/#plan). -->
+    <section class="container section plan" id="plan">
+      <SectionHeader number={2} title="What we're doing" />
+      <Plan />
+    </section>
+  </div>
 
-  <!-- Section 04: How can we help? -->
-  <section class="container section">
-    <SectionHeader number={4} title="How can we help?" />
+  <!-- Story band: FIND / FOLLOW / FILM (the three verbs of the intro, Content doc) stacked over the
+       spiral coral (NOAA) in magenta and green, like the "Lost but not gone forever" band on
+       Colossal's mammoth page. Under the words, a boxed number for each (echoFigures in src/data/home.ts). -->
+  <StoryBand
+    variant="echo"
+    image="story-find.jpg"
+    tag="The twilight zone"
+    items={[
+      { title: 'Find', text: 'marine life' },
+      { title: 'Follow', text: '50–300 m down' },
+      { title: 'Film', text: 'at low cost' },
+    ]}
+    figures={echoFigures}
+  />
+
+  <!-- Light band: Section 03 -->
+  <div class="band theme-light">
+    <!-- Section 03: three cards -->
+    <section class="container section">
+      <SectionHeader number={3} title="In the works" />
+      <!-- Feature layout: the first card (Turtle) is big and square, the other two stack beside it -->
+      <div class="card-grid card-grid--feature" data-reveal-group data-drift="90">
+        {heroCards.map((card, i) => (
+          <Card {...card} index={i + 1} ratio={i === 0 ? '1 / 1' : '16 / 9'} feature={i === 0} />
+        ))}
+      </div>
+    </section>
+  </div>
+
+  <!-- Light band: Section 04 (light, so the page doesn't run dark from here to the news). A radiolarian
+       from the 1887 HMS Challenger plates (false colour) runs off the right edge across the join with
+       Section 03, like Colossal's cut-out animals. -->
+  <div class="band theme-light band--specimen">
+    <Specimen image="radiolarian.webp" label="Radiolarian · HMS Challenger, 1887" top="clamp(-6rem, -6vw, -3rem)" size="clamp(11rem, 16vw, 15rem)" drift={20} />
+    <!-- Section 04: featured content -->
+    <section class="container section">
+      <SectionHeader number={4} title={featuredHeading} />
+      <!-- Stepped layout: each card sits a little lower than the one before -->
+      <div class:list={['card-grid', 'card-grid--stepped', { 'card-grid--pending': featuredPending }]} data-reveal-group data-drift="140">
+        {featuredCards.map((card, i) => <Card {...card} index={i + 1} ratio="16 / 9" />)}
+      </div>
+    </section>
+  </div>
+
+  <!-- Section 05: one big photo (sand tiger shark, false colour) with the help buttons over it -->
+  <PhotoBand image="home.jpg" position="38% 50%" label="Section 05" heading="How can we help?" tag="Researchers · Sanctuaries · Offshore teams" split>
     <ol class="help-list" data-reveal-group>
       {helpButtons.map((button, i) => (
         <li>
@@ -61,43 +136,107 @@ const pad = (n: number) => String(n).padStart(2, '0');
         </li>
       ))}
     </ol>
-  </section>
+  </PhotoBand>
 
-  <!-- Section 05: latest news -->
-  <section class="container section">
-    <SectionHeader number={5} title="Latest news">
-      <a class="text-link" href={url('/news')}>All news <span aria-hidden="true">→</span></a>
-    </SectionHeader>
-    <ol class="news-grid" data-reveal-group>
-      {latestNews.map((entry) => (
-        <li class="news-card">
-          <p class="label news-meta">
-            {entry.data.date
-              ? <time datetime={entry.data.date.toISOString().slice(0, 10)}>{formatNewsDate(entry)}</time>
-              : <span>{formatNewsDate(entry)}</span>}
-            <span class="news-kind">News</span>
-          </p>
-          <h3 class="news-title">
-            <a href={url(`/news#${entry.id}`)}>{entry.data.title}</a>
-          </h3>
-        </li>
-      ))}
-    </ol>
-  </section>
 
-  <!-- Section 06: You may also be interested in -->
-  <section class="container section">
-    <SectionHeader number={6} title="You may also be interested in" />
-    <div class="card-grid" data-reveal-group>
-      {interestedCards.map((card, i) => <Card {...card} index={i + 1} ratio="16 / 9" />)}
-    </div>
-  </section>
+  <!-- Dark band: Section 06 (like Colossal's black "In the news", which has a faint shimmering
+       texture behind it). Ours is NOAA sonar data of the seafloor, recoloured and kept dark. -->
+  <div class="band band--sonar">
+    <img class="band-texture" src={imageUrl('accents/sonar.jpg')} alt="" width="2400" height="1000" loading="lazy" decoding="async" aria-hidden="true" />
+    <!-- Section 06: latest news -->
+    <section class="container section">
+      <SectionHeader number={6} title="Latest news">
+        <a class="text-link label" href={url('/news')}>All news <span aria-hidden="true">→</span></a>
+      </SectionHeader>
+      <ol class="news-grid" data-reveal-group>
+        {latestNews.map((entry) => (
+          <li class="news-card">
+            <p class="label news-meta">
+              {entry.data.date
+                ? <time datetime={entry.data.date.toISOString().slice(0, 10)}>{formatNewsDate(entry)}</time>
+                : <span>{formatNewsDate(entry)}</span>}
+              <span class="news-kind">News</span>
+            </p>
+            <h3 class="news-title">
+              <a href={url(`/news#${entry.id}`)}>{entry.data.title}</a>
+            </h3>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </div>
+
+  <!-- Light band: Section 07 -->
+  <div class="band theme-light">
+    <!-- Section 07: You may also be interested in -->
+    <section class="container section">
+      <SectionHeader number={7} title="You may also be interested in" />
+      <div class="card-grid" data-reveal-group data-drift="100">
+        {interestedCards.map((card, i) => <Card {...card} index={i + 1} ratio="16 / 9" />)}
+      </div>
+    </section>
+  </div>
 </BaseLayout>
 
 <style>
   .section {
     padding-top: var(--space-2xl);
   }
+
+  /* ---------- The thin picture between Section 01 and 02 ---------- */
+
+  .strip-wrap {
+    padding-top: var(--space-xl);
+  }
+
+  .strip {
+    position: relative;
+    margin: 0;
+    aspect-ratio: 2400 / 525;
+    overflow: hidden;
+    border-radius: var(--radius);
+  }
+
+  .strip img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* thin white corner brackets, like a viewfinder (Colossal's lab-notebook marks) */
+  .strip-corner {
+    position: absolute;
+    width: 1.1rem;
+    height: 1.1rem;
+    border: 0 solid rgb(255 255 255 / 0.8);
+  }
+
+  .strip-corner--tl {
+    top: 0.75rem;
+    left: 0.75rem;
+    border-top-width: 1px;
+    border-left-width: 1px;
+  }
+
+  .strip-corner--br {
+    right: 0.75rem;
+    bottom: 0.75rem;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+  }
+
+  /* on phones it stays thin, but not so thin the fish disappear */
+  @media (max-width: 760px) {
+    .strip {
+      aspect-ratio: 2.2 / 1;
+    }
+  }
+
+  /* the fixed header shouldn't cover the section heading when you land on /#plan */
+  .plan {
+    scroll-margin-top: var(--header-height);
+  }
+
 
   /* ---------- Section 01 ---------- */
 
@@ -137,12 +276,216 @@ const pad = (n: number) => String(n).padStart(2, '0');
     line-height: 1.5;
   }
 
-  /* ---------- Card grids (sections 02, 03, 06) ---------- */
+  /* two small figures side by side under the button, filling the space beside the tall headline */
+  .intro-figures {
+    display: grid;
+    gap: var(--space-md);
+    width: 100%;
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-line);
+  }
+
+  /* the Earth on the left, its two numbers beside it at the same size */
+  .intro-figures {
+    grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .intro-globe {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .intro-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md); /* more room between the two figures than inside each */
+  }
+
+  .intro-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin: 0;
+  }
+
+  .intro-fig-value {
+    font-family: var(--font-display);
+    font-stretch: var(--display-width);
+    word-spacing: 0.1em; /* the condensed face squeezes the spaces too */
+    font-weight: 800;
+    font-size: clamp(2.25rem, 1.4rem + 1.6vw, 3rem);
+    line-height: 0.9;
+    color: var(--color-accent);
+  }
+
+  .intro-fig-text {
+    font-size: var(--text-sm);
+    line-height: 1.45;
+  }
+
+  /* phones: the Earth centred, the two numbers side by side under it */
+  @media (max-width: 760px) {
+    .intro-figures {
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+
+    .intro-globe {
+      width: min(15rem, 70%);
+    }
+
+    .intro-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: 100%;
+      gap: var(--space-sm) var(--space-md);
+    }
+
+    .intro-fig-src {
+      grid-column: 1 / -1;
+    }
+
+    .intro-fig-value {
+      font-size: 2rem;
+    }
+  }
+
+  .intro-fig-src {
+    display: inline-block;
+    padding-block: 0.3rem; /* an easier tap target on phones */
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  /* ---------- Card grids (sections 03, 04, 07) ---------- */
 
   .card-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--space-xl) var(--space-md);
+  }
+
+  /* Section 03: a wide left column for the big card, a narrower right column for the
+     other two. "grid-row: span 2" lets the big card take the height of both rows.
+     :global() is needed because the cards come from Card.astro, and Astro's scoped
+     styles here would otherwise only match elements written in this file. */
+  .card-grid--feature {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: start;
+    gap: var(--space-lg) var(--space-lg);
+  }
+
+  .card-grid--feature > :global(:first-child) {
+    grid-row: span 2;
+  }
+
+  /* Section 03: the 2nd and 3rd cards are pushed down a step each, so the row
+     reads as a staircase instead of a flat line */
+  .card-grid--stepped > :global(:nth-child(2)) {
+    margin-top: var(--space-xl);
+  }
+
+  .card-grid--stepped > :global(:nth-child(3)) {
+    margin-top: calc(var(--space-xl) * 2);
+  }
+
+  /* every featured photo still to come: no steps, and shorter panels */
+  .card-grid--pending > :global(*) {
+    margin-top: 0 !important;
+  }
+
+  .card-grid--pending :global(.card-media) {
+    aspect-ratio: 2 / 1 !important;
+  }
+
+  /* Section 03: the cards sit in front of the radiolarian (Specimen.astro) */
+  /* Section 03 above is light too, so its bottom padding already gives the usual gap; the
+     radiolarian sits across the join between the two, over the section's hairline, clear of the cards */
+  .band--specimen > :global(.specimen) {
+    z-index: 2;
+  }
+
+  .band--specimen > .section {
+    position: relative;
+    z-index: 1;
+    padding-top: 0;
+  }
+
+  /* phones: the radiolarian sits on its own above the heading, smaller, instead of behind it */
+  @media (max-width: 760px) {
+    .band--specimen {
+      padding-top: calc(40vw + 1rem);
+    }
+
+    .band--specimen :global(.specimen) {
+      top: 1.25rem;
+      width: 40vw;
+    }
+
+    .band--specimen :global(.specimen--right) {
+      right: -8vw;
+    }
+
+    /* its caption stays on phones, small, to the left of it, so it reads as a specimen */
+    .band.band--specimen :global(.specimen--right .specimen-label) {
+      display: block;
+      top: 42%;
+      right: calc(100% + 0.25rem);
+      width: 9.5rem;
+      font-size: 0.6rem;
+      white-space: normal;
+      text-align: right;
+      text-wrap: balance;
+    }
+
+    .band--specimen :global(.specimen-label::before) {
+      display: none;
+    }
+
+    /* every featured photo still to come: on phones each card becomes a compact row, a small
+       "photo to come" square beside its text, instead of three big empty panels in a row */
+    .card-grid--pending > :global(.card) {
+      display: grid;
+      grid-template-columns: 6rem minmax(0, 1fr);
+      gap: var(--space-md);
+      align-items: start;
+    }
+
+    .card-grid--pending :global(.card-media) {
+      aspect-ratio: 1 / 1 !important;
+    }
+
+    .card-grid--pending :global(.card-body) {
+      margin-top: 0; /* its rule lines up with the top of the square */
+    }
+
+    .card-grid--pending :global(.ph) {
+      padding: 0.5rem;
+    }
+
+    /* in the small square only what the photo should show, like the News thumbnails */
+    .card-grid--pending :global(.ph-corner),
+    .card-grid--pending :global(.ph-tag),
+    .card-grid--pending :global(.ph-file) {
+      display: none;
+    }
+
+    .card-grid--pending :global(.ph-what) {
+      font-size: 0.72rem;
+    }
+
+    /* the Turtle drawing shows only its side view on phones, where the small labels can still be read */
+    .card-grid--feature > :global(:first-child .card-media) {
+      aspect-ratio: 16 / 10 !important;
+    }
+
+    .card-grid--feature > :global(:first-child .card-media img) {
+      object-position: 50% 0%;
+    }
   }
 
   /* ---------- Section 04: three big rows ---------- */
@@ -172,6 +515,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
   .help-label {
     font-family: var(--font-display);
     font-stretch: var(--display-width);
+    word-spacing: 0.1em; /* the condensed face squeezes the spaces too */
     font-weight: 800;
     font-size: var(--text-2xl);
     line-height: 1;
@@ -201,6 +545,28 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
   /* ---------- Section 05: latest news ---------- */
 
+  /* The sonar texture fills the band behind the news (public/images/accents/sonar.jpg) */
+  .band-texture {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+    opacity: 0.55;   /* quieter, so the headlines on top read easily */
+    pointer-events: none;
+  }
+
+  .band--sonar > .section {
+    position: relative; /* in front of the texture */
+  }
+
+  /* the sonar texture fades in from the top, so there's no hard line where the photo band above ends */
+  .band--sonar .band-texture {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14rem);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 14rem);
+  }
+
   .news-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -216,7 +582,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
     flex-direction: column;
     gap: var(--space-sm);
     padding-top: var(--space-sm);
-    border-top: 1px solid var(--color-line);
+    border-top: 1px solid rgb(232 241 245 / 0.35);
     transition: border-color var(--duration) var(--ease);
   }
 
@@ -241,14 +607,11 @@ const pad = (n: number) => String(n).padStart(2, '0');
     color: var(--color-muted);
   }
 
+  /* the news titles in the condensed capitals of the News page, so the dated list holds its own
+     on the big dark band */
   .news-title {
-    font-family: var(--font-body);
-    font-stretch: normal;
-    font-weight: 600;
-    font-size: var(--text-lg);
-    line-height: 1.3;
-    text-transform: none;
-    letter-spacing: 0;
+    font-size: clamp(1.5rem, 1rem + 1.1vw, 2.2rem);
+    line-height: 1;
     transition: color var(--duration) var(--ease);
   }
 
@@ -289,6 +652,16 @@ const pad = (n: number) => String(n).padStart(2, '0');
     .card-grid {
       grid-template-columns: 1fr;
       gap: var(--space-lg);
+    }
+
+    /* One column on phones: no spanning, no steps */
+    .card-grid--feature > :global(:first-child) {
+      grid-row: auto;
+    }
+
+    .card-grid--stepped > :global(:nth-child(2)),
+    .card-grid--stepped > :global(:nth-child(3)) {
+      margin-top: 0;
     }
 
     .help-row {

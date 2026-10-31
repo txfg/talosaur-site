@@ -16,11 +16,38 @@
   --color-accent: #3de0d0;      /* Biolum cyan: buttons, links, numbers */
   --color-accent-ink: #06121f;  /* Text that sits on top of the accent color */
   --color-line: #1c3a52;        /* Dividers and borders */
+  --color-white: #ffffff;       /* Pure white: the inverted wordmark over the Home video */
+
+  /* Light stretches of the page (see .theme-light below): foam white with deep-water text */
+  --light-bg: #eef3f2;          /* Foam: light section background */
+  --light-surface: #dde6e6;     /* Panels on light sections */
+  --light-text: #0b1620;        /* Deep navy text */
+  --light-muted: #4f626d;       /* Secondary text on light */
+  --light-accent: #0b7480;      /* Deeper cyan that stays readable on white */
+  --light-line: #c3d0d1;        /* Dividers on light */
+  --color-live: #e5484d;        /* The red "live" dot on the Talosaur Live card */
+
+  /* Accent colours from the false-colour photo edits (Colossal-style colour blocks and dots).
+     Used sparingly: the lime block in the Work with us collage, small dots and tags on edited photos.
+     The images in public/images/accents/ were made with these same colours. */
+  --color-lime: #c6f04a;
+  --color-orange: #ff7a2f;
+  --color-violet: #5b2be0;
+  --color-magenta: #e14bff;
+
+  /* Bright band colours for the "plans" sections (Who we are, Work with us), so not every stretch
+     of the page is dark navy */
+  --color-royal: #3442d6;       /* Royal blue: "Where we're headed" */
+  --color-royal-deep: #2421a8;  /* Its darker partner, for the gradient behind "Growing with Turtle" */
+  --color-sun: #ff7a2f;         /* Orange: "What we bring back" (the same orange as the dots) */
+  --color-sun-ink: #1a0f08;     /* Text on the orange band */
 
   /* Fonts (loaded from Google Fonts in BaseLayout.astro) */
   --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-tech: "Martian Mono", "IBM Plex Mono", ui-monospace, monospace; /* wide technical titles */
+  --wide-width: 125%;           /* Archivo stretched wide, for subheads in the plans sections */
   --display-width: 75%;         /* How condensed the big headlines are (62% to 125%) */
 
   /* Font sizes. clamp(min, preferred, max) scales smoothly with screen width */
@@ -80,6 +107,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Things that bleed off the side of the screen (cut-outs, the edge strip) never cause sideways scrolling.
+   "clip" rather than "hidden" so sticky elements inside still work. */
+main {
+  overflow-x: clip;
+}
+
 img,
 video {
   display: block;
@@ -90,6 +123,23 @@ video {
 a {
   color: inherit;
   text-underline-offset: 0.15em;
+}
+
+/* The "//////" strips beside tags. Each slash is a small picture used as a stencil (mask), repeated
+   only as many whole times as fit and spaced evenly, so a strip never starts or ends on a cut-off
+   slash. The element's background-color is the slash colour. */
+.slashes {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='14' viewBox='0 0 7 14'%3E%3Cpath d='M1 14 L6.2 0' stroke='%23000' stroke-width='1.1' fill='none'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='14' viewBox='0 0 7 14'%3E%3Cpath d='M1 14 L6.2 0' stroke='%23000' stroke-width='1.1' fill='none'/%3E%3C/svg%3E");
+  -webkit-mask-size: 7px 100%;
+  mask-size: 7px 100%;
+  -webkit-mask-repeat: space no-repeat;
+  mask-repeat: space no-repeat;
+}
+
+/* Paragraphs avoid ending on a single short word where the browser can manage it */
+p {
+  text-wrap: pretty;
 }
 
 /* Links inside running text */
@@ -103,10 +153,12 @@ h3 {
   margin: 0;
   font-family: var(--font-display);
   font-stretch: var(--display-width);
+  word-spacing: 0.1em; /* the condensed face squeezes the spaces too */
   font-weight: 800;
   line-height: 0.95;
   text-transform: uppercase;
   letter-spacing: -0.01em;
+  text-wrap: balance;  /* no single word left alone on the last line */
 }
 
 :focus-visible {
@@ -145,6 +197,7 @@ h3 {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-muted);
+  text-wrap: balance;  /* bracket tags that wrap on phones split evenly, not with one word left over */
 }
 
 /* Pill-shaped cyan button. Add "button--outline" for the see-through version */
@@ -189,6 +242,7 @@ h3 {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  padding-block: 0.45rem; /* a comfortable tap target, even in the small label type */
   font-weight: 600;
   color: var(--color-accent);
   text-decoration: none;
@@ -264,6 +318,98 @@ h3 {
     transform: none;
     transition: none;
   }
+}
+
+/* ---------- Bands: light and dark stretches ----------
+   Like Colossal's pages, the site switches between light and dark stretches instead of
+   one color all the way down. Group sections in a band:
+     <div class="band theme-light"> ...sections... </div>   light stretch
+     <div class="band"> ...sections... </div>               dark stretch
+   .theme-light works by redefining the color variables inside it, so everything in the
+   band (cards, labels, buttons, lines) switches to its light version automatically. */
+.band {
+  /* position + background: each band paints over pictures from the band above
+     that drift down into it while scrolling (the scroll-under effect in BaseLayout.astro) */
+  position: relative;
+  padding-bottom: var(--space-2xl);
+  background: var(--color-bg);
+}
+
+/* Inner pages: a little room between the photo header and the first section */
+.band--top {
+  padding-top: var(--space-xl);
+}
+
+.theme-light {
+  --color-bg: var(--light-bg);
+  --color-surface: var(--light-surface);
+  --color-text: var(--light-text);
+  --color-muted: var(--light-muted);
+  --color-accent: var(--light-accent);
+  --color-accent-ink: var(--light-bg);
+  --color-line: var(--light-line);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Bright bands for the "plans" sections: royal blue, orange and violet. Like .theme-light, each one
+   redefines the colour variables inside it, so labels, lines and buttons follow along. */
+.theme-royal,
+.theme-violet {
+  --color-text: #ffffff;
+  --color-muted: rgb(255 255 255 / 0.82);
+  --color-line: rgb(255 255 255 / 0.32);
+  --color-accent: var(--color-lime);
+  --color-accent-ink: #0b1620;
+  color: var(--color-text);
+}
+
+.theme-royal {
+  --color-bg: var(--color-royal);
+  background: var(--color-bg);
+}
+
+.theme-violet {
+  --color-bg: var(--color-royal-deep);
+  background: linear-gradient(160deg, var(--color-violet) 0%, var(--color-royal-deep) 70%);
+}
+
+.theme-sun {
+  --color-bg: var(--color-sun);
+  --color-text: var(--color-sun-ink);
+  --color-muted: rgb(26 15 8 / 0.8);
+  --color-line: rgb(26 15 8 / 0.28);
+  --color-accent: var(--color-sun-ink);
+  --color-accent-ink: var(--color-sun);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Wide technical titles (Martian Mono), for the plans sections: thin, wide and spaced, centred
+   unless a page says otherwise. Overrides the condensed Archivo that other h2s use. */
+.tech-title {
+  font-family: var(--font-tech);
+  font-stretch: 112.5%;
+  font-weight: 300;
+  font-size: clamp(1.9rem, 0.6rem + 4.4vw, 5.2rem);
+  line-height: 1.08;
+  letter-spacing: 0.01em;
+  word-spacing: 0;
+  text-transform: uppercase;
+}
+
+/* Wide subheads: Archivo stretched wide, regular weight (like the "The future is biodiverse"
+   subheads on Colossal's company page) */
+.wide-head {
+  margin: 0;
+  font-family: var(--font-display);
+  font-stretch: var(--wide-width);
+  font-weight: 400;
+  font-size: clamp(1.25rem, 0.95rem + 1vw, 1.9rem);
+  line-height: 1.12;
+  letter-spacing: 0;
+  word-spacing: 0;
+  text-transform: uppercase;
 }
 
 /* Hidden visually but still read by screen readers */

@@ -11,15 +11,18 @@ interface Props {
 const { overlay = false } = Astro.props;
 
 // Which page are we on? Used to highlight the current link.
-// withoutBase turns '/talosaur-site/news/' into '/news' so it matches the addresses in site.ts.
+// withoutBase turns the current address ('/news/', or '/talosaur-site/news/' with a base) into '/news' so it matches the addresses in site.ts.
 const currentPath = withoutBase(Astro.url.pathname);
 const pad = (n: number) => String(n).padStart(2, '0');
 ---
 
 <header class:list={['site-header', { 'site-header--overlay': overlay }]}>
   <div class="container header-inner">
-    <!-- PLACEHOLDER: text wordmark until we have a logo file -->
-    <a href={url('/')} class="logo" aria-label="Talosaur home">Talosaur</a>
+    <!-- Logo: the "reverse" lockup from the brand pack (light stripes for dark backgrounds).
+         To swap it, replace public/brand/talosaur-lockup-reverse.svg and keep the name. -->
+    <a href={url('/')} class="logo" aria-label="Talosaur home">
+      <img src={url('/brand/talosaur-lockup-reverse.svg')} alt="Talosaur" width="164" height="28" />
+    </a>
 
     <button
       class="menu-toggle"
@@ -118,6 +121,18 @@ const pad = (n: number) => String(n).padStart(2, '0');
     opacity: 1;
   }
 
+  /* over a bright header photo (before scrolling), a soft dark glow keeps the menu readable,
+     since the photo itself has no dark shading */
+  .site-header--overlay:not(.is-scrolled) .nav-link,
+  .site-header--overlay:not(.is-scrolled) .menu-toggle {
+    text-shadow: 0 1px 8px rgb(6 18 31 / 0.65);
+  }
+
+  .site-header--overlay:not(.is-scrolled) .logo img,
+  .site-header--overlay:not(.is-scrolled) .menu-toggle-icon {
+    filter: drop-shadow(0 1px 5px rgb(6 18 31 / 0.55));
+  }
+
   .header-inner {
     display: flex;
     align-items: center;
@@ -128,13 +143,19 @@ const pad = (n: number) => String(n).padStart(2, '0');
   .logo {
     position: relative;
     z-index: 2; /* stays above the open phone menu */
-    font-family: var(--font-display);
-    font-stretch: var(--display-width);
-    font-weight: 900;
-    font-size: 1.6rem;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    text-decoration: none;
+    display: block;
+    transition: opacity var(--duration) var(--ease);
+  }
+
+  /* The SVG keeps its shape: set the height, and the width follows */
+  .logo img {
+    display: block;
+    width: auto;
+    height: 1.75rem;
+  }
+
+  .logo:hover {
+    opacity: 0.8;
   }
 
   /* ---------- Desktop nav ---------- */
@@ -293,6 +314,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
       border-radius: 0;
       font-family: var(--font-display);
       font-stretch: var(--display-width);
+      word-spacing: 0.1em; /* the condensed face squeezes the spaces too */
       font-size: clamp(2rem, 1rem + 6vw, 3.5rem);
       font-weight: 800;
       line-height: 1;

@@ -1,0 +1,132 @@
+---
+// How little of the deep seafloor anyone has seen, as a still picture in the same style as the dotted
+// Earth: a round "porthole" of 1,000 dots, one of them circled, and a magnifier over it showing that
+// one dot holds 100 more, with a single one lit. 1,000 x 100 = 100,000 specks, and everything ever seen
+// of the deep seafloor (under 0.001%, NOAA) is less than one of them.
+//
+// The dots are laid out like the seeds of a sunflower (each one turned by the golden angle), so they
+// fill the circle evenly without rows. No motion.
+const CX = 300, CY = 300, R = 288;      // the porthole
+const N = 1000, SPREAD = 262;           // dots and how far out they go
+const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+const dots = Array.from({ length: N }, (_, i) => {
+  const r = SPREAD * Math.sqrt((i + 0.5) / N);
+  const a = i * GOLDEN;
+  return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a), k: 0.55 + 0.45 * (1 - r / SPREAD) };
+});
+// the circled dot: the one nearest a spot down and to the right, towards the magnifier
+const target = { x: 478, y: 382 };
+const pick = dots.reduce((best, d, i) => (Math.hypot(d.x - target.x, d.y - target.y) < Math.hypot(dots[best].x - target.x, dots[best].y - target.y) ? i : best), 0);
+const S = dots[pick];
+
+// the magnifier, overlapping the porthole's lower right edge
+const MX = 652, MY = 448, MR = 116;
+// the two lines from the circled dot that just touch the magnifier (a zoom cone)
+const d = Math.hypot(S.x - MX, S.y - MY);
+const base = Math.atan2(S.y - MY, S.x - MX);
+const spread = Math.acos(MR / d);
+const t1 = { x: MX + MR * Math.cos(base + spread), y: MY + MR * Math.sin(base + spread) };
+const t2 = { x: MX + MR * Math.cos(base - spread), y: MY + MR * Math.sin(base - spread) };
+// inside it, 10 x 10 = 100 smaller dots, one lit
+const grid = Array.from({ length: 100 }, (_, i) => ({ x: MX - 67.5 + (i % 10) * 15, y: MY - 67.5 + Math.floor(i / 10) * 15, lit: i === 63 }));
+const f = (n: number) => n.toFixed(1);
+// Each set of dots is drawn as one shape (a path of many small circles) rather than one shape per dot:
+// it looks the same and stays sharp at any size, but the page has a dozen shapes to handle instead of
+// 1,100, which keeps it quick to load and scroll, on phones especially.
+// (the radius is rounded first and the two half circles span exactly twice it, so each dot stays round)
+const dotsPath = (pts: { x: number; y: number; r: number }[]) =>
+  pts
+    .map(({ x, y, r }) => {
+      const rr = Math.round(r * 10) / 10;
+      return `M${f(x - rr)} ${f(y)}a${rr} ${rr} 0 1 0 ${f(2 * rr)} 0a${rr} ${rr} 0 1 0 ${f(-2 * rr)} 0`;
+    })
+    .join('');
+const fieldPath = dotsPath(dots.filter((_, i) => i !== pick).map((p) => ({ x: p.x, y: p.y, r: 4.2 * p.k })));
+const smallPath = dotsPath(grid.filter((g) => !g.lit).map((g) => ({ x: g.x, y: g.y, r: 3 })));
+---
+
+<svg class="porthole" viewBox="0 0 780 600" role="img" aria-label="A round field of 1,000 dots with one circled, and a magnifier showing that dot holds 100 smaller ones, of which a single one is lit">
+  <defs>
+    <radialGradient id="pt-glass" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#13324a" />
+      <stop offset="1" stop-color="#0b1620" />
+    </radialGradient>
+  </defs>
+
+  <circle cx={CX} cy={CY} r={R} fill="url(#pt-glass)" />
+  <path class="pt-dots" d={fieldPath} />
+  <circle cx={CX} cy={CY} r={R} class="pt-rim" />
+
+  <!-- the circled dot and the zoom cone out to the magnifier -->
+  <circle cx={f(S.x)} cy={f(S.y)} r="4.4" class="pt-picked" />
+  <circle cx={f(S.x)} cy={f(S.y)} r="11" class="pt-ring" />
+  <line x1={f(S.x)} y1={f(S.y)} x2={f(t1.x)} y2={f(t1.y)} class="pt-cone" />
+  <line x1={f(S.x)} y1={f(S.y)} x2={f(t2.x)} y2={f(t2.y)} class="pt-cone" />
+
+  <circle cx={MX} cy={MY} r={MR} class="pt-lens" />
+  <path class="pt-small" d={smallPath} />
+  {grid.filter((g) => g.lit).map((g) => (
+    <>
+      <circle cx={f(g.x)} cy={f(g.y)} r="3.4" class="pt-lit" />
+      <circle cx={f(g.x)} cy={f(g.y)} r="8" class="pt-lit-ring" />
+    </>
+  ))}
+  <text x={MX} y={MY - MR - 12} class="pt-tag">× 100</text>
+</svg>
+
+<style>
+  .porthole {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .pt-dots {
+    fill: rgb(232 241 245 / 0.32);
+  }
+
+  .pt-rim {
+    fill: none;
+    stroke: #3de0d0;
+    stroke-opacity: 0.35;
+  }
+
+  .pt-picked {
+    fill: #ff7a2f;
+  }
+
+  .pt-ring,
+  .pt-lit-ring {
+    fill: none;
+    stroke: #ff7a2f;
+    stroke-width: 1.2;
+  }
+
+  .pt-cone {
+    stroke: #ff7a2f;
+    stroke-width: 1;
+    stroke-opacity: 0.7;
+  }
+
+  .pt-lens {
+    fill: #071019;
+    stroke: #ff7a2f;
+    stroke-width: 1.5;
+  }
+
+  .pt-small {
+    fill: rgb(232 241 245 / 0.3);
+  }
+
+  .pt-lit {
+    fill: #ff7a2f;
+  }
+
+  .pt-tag {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-anchor: middle;
+    fill: #ff7a2f;
+  }
+</style>

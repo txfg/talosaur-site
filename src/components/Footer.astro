@@ -1,6 +1,6 @@
 ---
 // Shared footer. Used on every page through BaseLayout.astro.
-import { footerColumns, socialLinks, footerLegal, teamEmail, isPlaceholder } from '../data/site';
+import { footerColumns, socialLinks, footerLegal, contactEmails } from '../data/site';
 import { url } from '../lib/url';
 
 const year = new Date().getFullYear();
@@ -16,13 +16,12 @@ const year = new Date().getFullYear();
             {column.links.map((link) => (
               <li><a href={url(link.href)}>{link.label}</a></li>
             ))}
-            {column.title === 'Can we help?' && (
-              <li>
-                {isPlaceholder(teamEmail)
-                  ? <span class="placeholder">{teamEmail}</span>
-                  : <a href={`mailto:${teamEmail}`}>{teamEmail}</a>}
+            {column.title === 'Can we help?' && contactEmails.map((contact) => (
+              <li class="footer-email">
+                <!-- <wbr> lets a long address break after the @ on a narrow phone, never mid-word -->
+                <a href={`mailto:${contact.email}`} title={contact.label}>{contact.email.split('@')[0]}@<wbr />{contact.email.split('@')[1]}</a>
               </li>
-            )}
+            ))}
           </ul>
         </div>
       ))}
@@ -34,15 +33,20 @@ const year = new Date().getFullYear();
             <li>
               {link.href
                 ? <a href={link.href} target="_blank" rel="noopener noreferrer">{link.label} <span class="ext" aria-hidden="true">↗</span></a>
-                : <span title="Link coming soon">{link.label}</span>}
+                : <span class="footer-pending">{link.label} <span class="label footer-soon">[ soon ]</span></span>}
             </li>
           ))}
         </ul>
       </div>
     </div>
 
-    <!-- Oversized wordmark. PLACEHOLDER: swap for the logo file when we have one -->
-    <p class="footer-wordmark" aria-hidden="true">Talosaur</p>
+    <!-- Oversized logo. The logo file is used as a "mask" (a stencil), so its color
+         comes from the CSS below instead of the file. -->
+    <div
+      class="footer-wordmark"
+      aria-hidden="true"
+      style={`--logo-url: url(${url('/brand/talosaur-lockup-white.svg')})`}
+    ></div>
 
     <div class="footer-bottom">
       <span>&copy; {year} Talosaur</span>
@@ -57,7 +61,8 @@ const year = new Date().getFullYear();
 
 <style>
   .site-footer {
-    margin-top: var(--space-2xl);
+    position: relative; /* paints over anything drifting down from the last section */
+    margin-top: 0; /* the section above already ends with its own space */
     padding-top: var(--space-xl);
     border-top: 1px solid var(--color-line);
     background: var(--color-bg);
@@ -96,33 +101,61 @@ const year = new Date().getFullYear();
     color: var(--color-accent);
   }
 
-  .footer-column span {
-    color: var(--color-muted);
+  /* a channel with no link yet: the same name style as the others, with a small "[ soon ]" after it,
+     the two kept together on one line */
+  .footer-pending {
+    white-space: nowrap;
   }
 
-  .placeholder {
+  .footer-soon {
+    margin-left: 0.35rem;
+    white-space: nowrap;
+    font-size: 0.62rem;
+    color: var(--color-muted);
+    vertical-align: 0.2em;
+  }
+
+  /* the three email addresses under "Can we help?", smaller, in the label font */
+  .footer-email {
     font-family: var(--font-mono);
+  }
+
+  .footer-column .footer-email {
     font-size: var(--text-sm);
   }
 
+  /* padded so each address is a comfortable tap target on a phone */
+  .footer-email a {
+    display: inline-block;
+    padding-block: 0.35rem;
+    color: rgb(232 241 245 / 0.78);
+  }
+
+  .footer-column li.footer-email {
+    padding-block: 0;
+  }
+
+  .footer-email:first-of-type {
+    margin-top: var(--space-xs);
+  }
+
+  /* Full-width logo in the faint surface color. mask-image cuts the colored box
+     to the logo's shape; aspect-ratio matches the logo file so it never stretches. */
   .footer-wordmark {
-    margin: var(--space-xl) 0 0;
-    font-family: var(--font-display);
-    font-stretch: var(--display-width);
-    font-weight: 900;
-    font-size: clamp(4rem, 19vw, 19rem); /* fills the width on any screen */
-    line-height: 0.8;
-    letter-spacing: -0.02em;
-    text-transform: uppercase;
-    color: var(--color-surface);
-    user-select: none;
+    width: 100%;
+    margin: var(--space-xl) 0 var(--space-md);
+    aspect-ratio: 4982.64 / 852;
+    background-color: var(--color-surface);
+    -webkit-mask: var(--logo-url) center / contain no-repeat;
+    mask: var(--logo-url) center / contain no-repeat;
   }
 
   .footer-bottom {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-xs) var(--space-md);
-    padding-block: var(--space-md);
+    align-items: center;
+    gap: 0 var(--space-md);
+    padding-block: var(--space-sm);
     border-top: 1px solid var(--color-line);
     font-family: var(--font-mono);
     font-size: 0.75rem;
@@ -131,7 +164,10 @@ const year = new Date().getFullYear();
     color: var(--color-muted);
   }
 
+  /* padded so each link is a comfortable tap target on a phone (about 30 px tall) */
   .footer-bottom a {
+    display: inline-block;
+    padding-block: 0.5rem;
     text-decoration: none;
   }
 
@@ -156,6 +192,10 @@ const year = new Date().getFullYear();
   @media (max-width: 700px) {
     .footer-columns {
       grid-template-columns: 1fr 1fr;
+    }
+
+    .footer-column .footer-email {
+      font-size: 0.8125rem;
     }
 
     .footer-bottom span:last-child {

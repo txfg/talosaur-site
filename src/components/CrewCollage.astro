@@ -1,0 +1,754 @@
+---
+// The crew on the Who we are page, as a loose collage in the spirit of the "Greatness is in our DNA"
+// band on Colossal's Company page: cards of different sizes and shapes, set at different heights,
+// with a thin strip in each person's discipline colour along one edge of their picture, and the team
+// statement cut into the middle of the collage as a light box on a lime band that runs off the right
+// edge of the screen. No numbers and no grid of identical faces.
+//
+//   <CrewCollage members={crew} disciplines={['Mechanical', 'Hydraulics']} statement={teamStatement} />
+//
+// Above the crew, the light page steps down into deep navy before the section title (the light runs
+// on a little further on the right), so the break between light and dark is uneven.
+//
+// Each card: the portrait (or, until the photo exists, a dark panel with the person's initials over a
+// faint pattern for their discipline), then the role in a tag of the discipline's colour, the name,
+// major and year, and LinkedIn if there is one. People's photos stay natural; only the strips, tags
+// and blocks carry colour.
+//
+// The placement repeats every six people (see `slots` below). Team members are listed in
+// src/data/team.ts; photos go in public/images/team/ and can be any shape: they are cropped to the
+// card's shape.
+import Photo from './Photo.astro';
+import Marquee from './Marquee.astro';
+import SectionHeader from './SectionHeader.astro';
+import Statement from './Statement.astro';
+import { isPlaceholder } from '../data/site';
+import { imageExists } from '../lib/images';
+import type { TeamMember } from '../data/team';
+
+interface Props {
+  members: TeamMember[];
+  disciplines?: string[];     // the words for the strip at the top
+  statement?: { tag?: string; headline: string; text?: string; signoff?: string };
+}
+
+const { members, disciplines = [], statement } = Astro.props;
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+// Big text on a panel: "Sam Cakici" -> "SC". A [Name] placeholder shows the role instead.
+const panelText = (name: string, role: string) =>
+  isPlaceholder(name) ? role : name.split(/\s+/).map((part) => part[0]).join('').slice(0, 3).toUpperCase();
+
+// The pattern drawn behind a person's initials: engineering grid, flowing water, a zigzag, a dot
+// matrix, sonar rings
+const motifOf = (role: string) => {
+  const r = role.toLowerCase();
+  if (r.includes('mechanical')) return 'grid';
+  if (r.includes('hydraulic')) return 'waves';
+  if (r.includes('electrical')) return 'zigzag';
+  if (r.includes('software')) return 'dots';
+  if (r.includes('ocean')) return 'rings';
+  return 'stripes';
+};
+
+// One colour per discipline, used on that person's strip and role tag, and on the ring after the
+// discipline in the strip at the top. The ink is the text colour that reads on it.
+const palette: Record<string, { color: string; ink: string }> = {
+  mechanical: { color: 'var(--color-orange)', ink: 'var(--light-text)' },
+  hydraulics: { color: 'var(--color-accent)', ink: 'var(--light-text)' },
+  electrical: { color: 'var(--color-lime)', ink: 'var(--light-text)' },
+  software: { color: 'var(--color-violet)', ink: 'var(--color-white)' },
+  ocean: { color: 'var(--color-magenta)', ink: 'var(--light-text)' },
+};
+const fallback = { color: 'var(--color-orange)', ink: 'var(--light-text)' };
+const colourOf = (role: string) => palette[Object.keys(palette).find((k) => role.toLowerCase().includes(k.slice(0, 8))) ?? ''] ?? fallback;
+
+// Where each card sits, repeating every six people. Sizes and heights are chosen so that cards side
+// by side either line up exactly or are clearly apart, never nearly lined up.
+//   d = laptops (24 columns): col = first column, span = columns wide, drop = how far below the top
+//       of its row the card starts. BITE pulls a card up over the bottom of the lime band.
+//   t = tablets (12 columns): the same, plus row (the first person spans two rows beside the next two).
+//   m = phones (one column): w = width, side = start (left) or end (right), strip = the edge the
+//       colour strip runs along, gap = space above the card; bleed = the picture runs to the screen edges.
+//   ratio = the picture's shape; strip = the edge the colour strip runs along on wider screens
+//   (none for the first card, which has a colour block instead); glow = where the colour glows on a
+//   stand-in panel.
+const BITE = 'var(--climb)';
+// Laptop drops, worked out from the cards' widths (a percentage margin on a grid item is a share of
+// its own width, and each card is a fixed number of columns), so the cards keep the same relation to
+// each other at every laptop width:
+//   Kabir's picture ends well below Nicholas's (never nearly level with it);
+//   Alvin's picture starts a little below the bottom of Dominick's, and Omeed's starts about 40% of
+//   the way down Alvin's, so the last three overlap in height instead of stepping down like stairs.
+const KM_DROP = 'calc(5rem + 60% + 0.267 * var(--col-gap) + 9rem)';
+const AZ_DROP = 'calc(var(--climb) + 70% - 0.3 * var(--col-gap) + 3.5rem)';
+const OT_DROP = 'calc(var(--climb) + 140% + 0.4 * var(--col-gap) + 13rem)';
+// Tablets: Omeed is as wide as Dominick and sits under him, so he starts below Dominick's square
+// picture (100% of his own width) plus Dominick's caption and some room
+const OT_TAB_DROP = 'calc(var(--climb) + 100% + 13rem)';
+const slots = [
+  { d: [1, 11, '0rem'], t: [1, 7, '0rem', '1 / span 2'], m: ['100%', 'start', 'none', '0rem'], ratio: '4 / 5', strip: 'none', glow: '85% 15%', feature: true },
+  { d: [13, 5, KM_DROP], t: [9, 4, '3rem', '1'], m: ['74%', 'end', 'left', '4.75rem'], ratio: '1 / 1', strip: 'top-left', glow: '80% 20%' },
+  { d: [19, 6, '5rem'], t: [10, 3, '2rem', '2'], m: ['62%', 'start', 'right', '4.75rem'], ratio: '3 / 4', strip: 'left-up', glow: '30% 20%' },
+  { d: [1, 5, OT_DROP], t: [1, 4, OT_TAB_DROP, '4'], m: ['74%', 'end', 'left', '-2.8rem'], ratio: '4 / 5', strip: 'top-right', glow: '20% 15%' },
+  { d: [5, 7, BITE], t: [2, 4, BITE, '4'], m: ['100%', 'start', 'top', '6.25rem'], ratio: '1 / 1', strip: 'right-up', glow: '75% 30%', bleed: true },
+  { d: [15, 10, AZ_DROP], t: [8, 5, '2rem', '4'], m: ['72%', 'start', 'right', '4.75rem'], ratio: '5 / 4', strip: 'bottom', glow: '15% 85%' },
+];
+
+// Laptop rows: the first three people share row 1, the statement is row 2, the next three share
+// row 3 (set explicitly, so cards in one row may overlap a column); any further group of six carries
+// on below, three to a row.
+const desktopRow = (i: number) => {
+  const block = Math.floor(i / slots.length);
+  const second = i % slots.length >= 3 ? 1 : 0;
+  return block === 0 ? (second ? 3 : 1) : 3 + (block - 1) * 2 + 1 + second;
+};
+
+// Tablet rows: the first six people use rows 1 and 2, the statement row 3, then rows 4 and 5; any
+// further group of six carries on below.
+const tabletRow = (row: string, i: number) => {
+  const block = Math.floor(i / slots.length);
+  if (block === 0) return row;
+  const shift = 5 + (block - 1) * 4;
+  return row.replace(/^\d+/, (n) => String(Number(n) + shift - (Number(n) > 3 ? 1 : 0)));
+};
+
+// The statement goes in after the first three people (or at the end, for a smaller crew)
+const statementAfter = Math.min(3, members.length);
+---
+
+<div class="band crew-band">
+  <!-- The disciplines strip, still on the light page -->
+  <div class="theme-light crew-surface">
+    {disciplines.length > 0 && <Marquee words={disciplines} colors={disciplines.map((w) => colourOf(w).color)} />}
+  </div>
+
+  <!-- Deep navy from here down. The light runs on a little further on the right (the step), then the
+       section title, then the collage. -->
+  <section class="crew">
+    <div class="container crew-head">
+      <SectionHeader number={1} title="The crew">
+        <p class="label crew-count">[ {pad(members.length)} crew · {pad(disciplines.length)} disciplines ]</p>
+      </SectionHeader>
+    </div>
+
+    <div class="container">
+      <div class="crew-grid">
+        <!-- a rotated tag in the left margin that stays put while the collage scrolls past (laptops) -->
+        <div class="crew-rail" aria-hidden="true"><span class="label">[ The crew · Texas A&amp;M and UT Austin ]</span></div>
+
+        {members.map((member, i) => {
+          const slot = slots[i % slots.length];
+          const colour = colourOf(member.role);
+          const hasPhoto = imageExists(`team/${member.photo}`);
+          return (
+            <>
+              <article
+                class:list={['crew-card', `crew-card--strip-${slot.strip}`, `crew-card--m-strip-${slot.m[2]}`, { 'crew-card--feature': slot.feature, 'crew-card--bleed': slot.bleed }]}
+                style={`--col: ${slot.d[0]}; --span: ${slot.d[1]}; --drop: ${slot.d[2]}; --d-row: ${desktopRow(i)}; --t-col: ${slot.t[0]}; --t-span: ${slot.t[1]}; --t-drop: ${slot.t[2]}; --t-row: ${tabletRow(String(slot.t[3]), i)}; --m-w: ${slot.m[0]}; --m-side: ${slot.m[1]}; --m-gap: ${slot.m[3]}; --glow: ${slot.glow}; --accent: ${colour.color}; --accent-ink: ${colour.ink};`}
+                data-reveal
+              >
+                <div class="crew-media">
+                  {slot.feature && <span class="crew-block" aria-hidden="true"></span>}
+                  {hasPhoto ? (
+                    <Photo file={`team/${member.photo}`} label={member.name} ratio={slot.ratio} />
+                  ) : (
+                    <div class:list={['crew-panel', `crew-panel--${motifOf(member.role)}`]} style={`aspect-ratio: ${slot.ratio};`} aria-hidden="true">
+                      <span class="label crew-soon">[ Photo to come ]</span>
+                      <span class:list={['crew-initials', { 'crew-initials--role': isPlaceholder(member.name) }]}>{panelText(member.name, member.role)}</span>
+                    </div>
+                  )}
+                </div>
+                <div class="crew-caption">
+                  <p class="label crew-role">{member.role}</p>
+                  <h3 class="crew-name">{member.name}</h3>
+                  <div class="crew-foot">
+                    <p class="crew-major">{member.majorYear}</p>
+                    {member.linkedin && (
+                      <a class="label crew-linkedin" href={member.linkedin} target="_blank" rel="noopener noreferrer">
+                        LinkedIn <span aria-hidden="true">↗</span>
+                        <span class="visually-hidden">(opens in a new tab)</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </article>
+
+              {statement && i === statementAfter - 1 && (
+                <div class="crew-statement">
+                  <div class="crew-statement-inner">
+                    <span class="crew-statement-frame" aria-hidden="true"><span class="crew-statement-mark"></span></span>
+                    <div class="crew-statement-box theme-light">
+                      <Statement tag={statement.tag} headline={statement.headline} text={statement.text} signoff={statement.signoff} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+  /* ---------- The band: light strip, the step, then deep navy ---------- */
+
+  .crew-band {
+    padding-bottom: 0;
+    background: var(--color-bg);
+  }
+
+  /* the disciplines strip; the navy starts right under it on the left. Its bottom hairline is left
+     out here, so no line runs across the step below it. */
+  .crew-surface {
+    display: flow-root;
+    padding-top: var(--space-xl);
+    background: var(--light-bg);
+  }
+
+  .crew-surface :global(.marquee) {
+    border-bottom: 0;
+  }
+
+  /* The step: on the right the light carries on down for a little way before the navy takes over the
+     full width, so the edge is uneven. Its corner sits on the left edge of the second card. The
+     section title starts below it, in the dark. */
+  .crew {
+    --step: clamp(3.5rem, 2rem + 5vw, 7rem);
+    --col-gap: clamp(0.75rem, 1.1vw, 1rem);
+    --row-gap: clamp(3rem, 5vw, 5.5rem);
+    --pad: clamp(4.5rem, 9vw, 7.5rem);      /* lime above and below the statement box */
+    --offset: clamp(1rem, 2.2vw, 2rem);     /* how far the frame sits up and right of the box */
+    /* how far the card after the statement climbs into the empty bottom left corner of the box:
+       just far enough that its "[ Photo to come ]" label sits on the same line as the box's sign off
+       (the box's bottom padding, plus the label's line and the panel's own padding and border); the
+       rest of the card hangs well below the lime */
+    --climb-into: calc(clamp(1.75rem, 3.5vw, 3.5rem) + 2rem + 1px);
+    --climb: calc(-1 * (var(--row-gap) + var(--pad) + var(--climb-into)));
+    position: relative;
+    /* extra room at the bottom: the feather star photo below reaches up into this section */
+    padding-bottom: calc(var(--space-2xl) + 4rem);
+    color: var(--color-text);
+    background: var(--color-bg);
+  }
+
+  .crew::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: calc(50% + var(--col-gap) / 2);
+    height: var(--step);
+    background: var(--light-bg);
+  }
+
+  .crew-head {
+    padding-top: calc(var(--step) + var(--space-xl) + 1.5rem);
+  }
+
+  /* the crew is the heart of the page, so its title is set larger than a usual section title */
+  .crew-head :global(.section-title) {
+    font-size: clamp(2.75rem, 1.25rem + 6vw, 6.75rem);
+  }
+
+  .crew-count {
+    margin: 0;
+    color: var(--color-muted);
+  }
+
+  /* ---------- The collage (laptops: 24 narrow columns, so sizes can vary finely) ---------- */
+
+  .crew-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(24, minmax(0, 1fr));
+    gap: var(--row-gap) var(--col-gap);
+    align-items: start;
+    padding-top: var(--space-lg);
+  }
+
+  .crew-card {
+    position: relative;
+    z-index: 3; /* above the lime band and the statement box where a card climbs over them */
+    container-type: inline-size; /* so the initials can be sized to the card */
+    grid-column: var(--col) / span var(--span);
+    grid-row: var(--d-row);
+    margin-top: var(--drop);
+  }
+
+  /* the rotated tag in the left margin, staying in view while the collage scrolls past */
+  .crew-rail {
+    position: absolute;
+    top: var(--space-lg); /* level with the top of the first card */
+    bottom: 0;
+    left: calc(-1 * var(--gutter) + 0.35rem);
+    display: none;
+    width: 1rem;
+    pointer-events: none;
+  }
+
+  .crew-rail span {
+    position: sticky;
+    top: 40vh;
+    display: block;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    color: var(--color-muted);
+  }
+
+  @media (min-width: 1280px) {
+    .crew-rail {
+      display: block;
+    }
+  }
+
+  /* ---------- A card ---------- */
+
+  /* the pictures stay still on hover (people's photos don't move) */
+  .crew-media {
+    position: relative;
+    z-index: 0; /* its own layer, so the colour block can sit behind the picture */
+  }
+
+  /* the thin colour strip along one edge of the picture (like Colossal's edge strips): it runs past
+     one corner, always away from the role tag below */
+  .crew-media::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    background: var(--accent);
+  }
+
+  .crew-card--strip-none .crew-media::after {
+    display: none;
+  }
+
+  /* left edge, running out past the top corner and ending halfway down */
+  .crew-card--strip-left-up .crew-media::after {
+    top: -0.9rem;
+    bottom: 50%;
+    left: -6px;
+    width: 6px;
+  }
+
+  /* right edge, running out past the bottom corner (away from the tag, which sits on the left) */
+  .crew-card--strip-right-down .crew-media::after {
+    top: 30%;
+    bottom: -0.9rem;
+    right: -6px;
+    width: 6px;
+  }
+
+  /* right edge, running out past the top corner */
+  .crew-card--strip-right-up .crew-media::after {
+    top: -0.9rem;
+    bottom: 34%;
+    right: -6px;
+    width: 6px;
+  }
+
+  /* top edge, running out past the right corner */
+  .crew-card--strip-top-right .crew-media::after {
+    top: -6px;
+    left: 30%;
+    right: -0.9rem;
+    height: 6px;
+  }
+
+  /* top edge, running out past the left corner */
+  .crew-card--strip-top-left .crew-media::after {
+    top: -6px;
+    left: -0.9rem;
+    right: 30%;
+    height: 6px;
+  }
+
+  /* along the bottom, from past the role tag below to the right corner */
+  .crew-card--strip-bottom .crew-media::after {
+    bottom: -6px;
+    left: 58%;
+    right: 0;
+    height: 6px;
+  }
+
+  /* the first (biggest) card gets a solid block offset behind its top right corner instead */
+  .crew-block {
+    position: absolute;
+    z-index: -1;
+    top: calc(-1 * clamp(0.75rem, 1.6vw, 1.5rem));
+    right: calc(-1 * clamp(0.75rem, 1.6vw, 1.5rem));
+    width: 42%;
+    height: 34%;
+    background: var(--accent);
+  }
+
+  /* Stand-in for a portrait: a dark panel with the initials, over a faint pattern for the person's
+     discipline and a glow in their colour (placed differently on each card) */
+  .crew-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.8rem 0.9rem;
+    overflow: hidden;
+    border: 1px solid rgb(232 241 245 / 0.12); /* keeps the panel apart from the navy around it */
+    background-color: #0b1f33; /* a step lighter than the section's navy */
+    background-image:
+      var(--motif),
+      radial-gradient(circle at var(--glow), color-mix(in srgb, var(--accent) 34%, transparent), transparent 60%),
+      linear-gradient(160deg, #11304a, #0a1b2d);
+  }
+
+  .crew-panel--grid {
+    --motif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M20 0V20M0 20H20' stroke='%23e8f1f5' stroke-opacity='.13' fill='none'/%3E%3C/svg%3E");
+  }
+
+  .crew-panel--waves {
+    --motif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='16'%3E%3Cpath d='M0 8 Q12 1 24 8 T48 8' stroke='%23e8f1f5' stroke-opacity='.16' fill='none'/%3E%3C/svg%3E");
+  }
+
+  .crew-panel--zigzag {
+    --motif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16'%3E%3Cpath d='M0 12 L6 4 L12 12 L18 4 L24 12' stroke='%23e8f1f5' stroke-opacity='.15' fill='none'/%3E%3C/svg%3E");
+  }
+
+  .crew-panel--dots {
+    --motif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Ccircle cx='6' cy='6' r='1.1' fill='%23e8f1f5' fill-opacity='.2'/%3E%3C/svg%3E");
+  }
+
+  .crew-panel--rings {
+    --motif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Cg fill='none' stroke='%23e8f1f5' stroke-opacity='.15'%3E%3Ccircle cx='340' cy='60' r='40'/%3E%3Ccircle cx='340' cy='60' r='80'/%3E%3Ccircle cx='340' cy='60' r='120'/%3E%3Ccircle cx='340' cy='60' r='160'/%3E%3Ccircle cx='340' cy='60' r='200'/%3E%3Ccircle cx='340' cy='60' r='240'/%3E%3Ccircle cx='340' cy='60' r='280'/%3E%3Ccircle cx='340' cy='60' r='320'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: cover, auto, auto;
+  }
+
+  .crew-panel--stripes {
+    --motif: repeating-linear-gradient(135deg, rgb(232 241 245 / 0.07) 0 1px, transparent 1px 14px);
+  }
+
+  .crew-soon {
+    color: var(--color-lime);
+  }
+
+  .crew-initials {
+    font-family: var(--font-display);
+    font-stretch: var(--display-width);
+    font-weight: 900;
+    font-size: clamp(2.4rem, 17cqi, 7rem); /* scales with the card, so bigger cards read bigger */
+    line-height: 0.85;
+    letter-spacing: -0.02em;
+    color: rgb(232 241 245 / 0.9);
+  }
+
+  .crew-initials--role {
+    font-size: clamp(1.3rem, 0.9rem + 1vw, 2rem);
+    line-height: 0.95;
+    text-transform: uppercase;
+  }
+
+  /* role in a tag of the discipline's colour, then the name, then major and year under a hairline */
+  .crew-caption {
+    margin-top: 1.1rem;
+  }
+
+  .crew-role {
+    display: inline-block;
+    margin: 0;
+    padding: 0.25rem 0.5rem;
+    color: var(--accent-ink);
+    background: var(--accent);
+  }
+
+  .crew-name {
+    margin-top: 0.55rem;
+    font-size: clamp(1.5rem, 1.1rem + 1vw, 2.2rem);
+  }
+
+  .crew-card--feature .crew-name {
+    font-size: clamp(2rem, 1.2rem + 2.2vw, 3.4rem);
+  }
+
+  .crew-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-xs) var(--space-md);
+    margin-top: 0.7rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgb(232 241 245 / 0.18);
+  }
+
+  .crew-major {
+    margin: 0;
+    color: rgb(232 241 245 / 0.7);
+  }
+
+  .crew-linkedin {
+    display: inline-block;
+    padding-block: 0.35rem;
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .crew-linkedin:hover {
+    color: var(--accent);
+  }
+
+  /* ---------- The statement, cut into the collage ---------- */
+
+  /* The lime band runs the full row from the content's left edge off the right edge of the screen,
+     with a fine dot screen. The box sits four columns in. */
+  .crew-statement {
+    position: relative;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 3rem; /* a little more room under the first row of people */
+    padding-block: var(--pad);
+  }
+
+  .crew-statement::before {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: calc(50% - 50vw);
+    background:
+      radial-gradient(circle, rgb(6 18 31 / 0.13) 1.1px, transparent 1.5px) 0 0 / 9px 9px,
+      var(--color-lime);
+  }
+
+  /* the box starts four columns in, and stops short of the right margin by the frame's offset, so
+     the frame ends exactly on the margin */
+  .crew-statement-inner {
+    position: relative;
+    z-index: 1;
+    margin-left: calc((100% - 23 * var(--col-gap)) / 24 * 4 + 4 * var(--col-gap));
+    margin-right: var(--offset);
+  }
+
+  /* a hairline frame the size of the box, shifted up and to the right and tucked behind it, so its
+     top and right edges show on the lime, with a small navy square on its corner */
+  .crew-statement-frame {
+    position: absolute;
+    z-index: 1;
+    top: calc(-1 * var(--offset));
+    right: calc(-1 * var(--offset));
+    bottom: var(--offset);
+    left: var(--offset);
+    border: 1px solid rgb(6 18 31 / 0.6);
+    pointer-events: none;
+  }
+
+  .crew-statement-mark {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 0.6rem;
+    height: 0.6rem;
+    background: var(--color-bg);
+  }
+
+  .crew-statement-box {
+    position: relative;
+    z-index: 2; /* above the frame */
+    padding: clamp(1.75rem, 3.5vw, 3.5rem);
+    background: var(--light-bg);
+  }
+
+  /* the paragraph in the box doesn't drift with the scroll here: a card overlaps the box, and the
+     words should stay put inside it */
+  .crew-statement-box :global(.statement-body) {
+    transform: none !important;
+  }
+
+  /* inside the box the big line is set a size smaller, so it fits with room to spare, and the
+     paragraph starts a column further left so less of the box stands empty */
+  .crew-statement-box :global(.statement-line) {
+    font-size: clamp(2rem, 0.6rem + 2.7vw, 4rem);
+  }
+
+  @media (min-width: 761px) {
+    .crew-statement-box :global(.statement-body) {
+      grid-column: 6 / -1;
+      margin-left: 0;
+    }
+  }
+
+  /* the coloured boxes in the headline keep only a hair of space on their right, so a comma after
+     one sits close to it */
+  .crew-statement-box :global(.statement-box) {
+    padding-right: 0.07em;
+  }
+
+  /* ---------- Tablets: 12 columns; the first person spans two rows beside the next two ---------- */
+
+  @media (max-width: 1099px) {
+    /* the step's corner on the second card's left edge (column 9 of 12) */
+    .crew::before {
+      left: calc(var(--gutter) + (100% - 2 * var(--gutter) + var(--col-gap)) / 12 * 8);
+    }
+
+    .crew-grid {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+
+    .crew-card {
+      grid-column: var(--t-col) / span var(--t-span);
+      grid-row: var(--t-row);
+      margin-top: var(--t-drop);
+    }
+
+    .crew-statement {
+      grid-row: 3;
+    }
+
+    .crew-statement-inner {
+      margin-left: calc((100% - 11 * var(--col-gap)) / 12 + var(--col-gap));
+    }
+  }
+
+  /* on small phones the disciplines strip is set smaller, so more than one word always shows (it
+     shouldn't read as a heading when it isn't moving) */
+  @media (max-width: 480px) {
+    .crew-surface :global(.marquee-word) {
+      font-size: 1.9rem;
+    }
+  }
+
+  /* ---------- Phones: one column, the cards at different widths on alternating sides ---------- */
+
+  @media (max-width: 760px) {
+    .crew {
+      --pad: var(--space-lg);
+      --offset: 1rem;
+      padding-bottom: calc(var(--space-2xl) + 3rem);
+    }
+
+    /* the step's corner on the left edge of the first card's colour block */
+    .crew::before {
+      left: calc(var(--gutter) + (100% - 2 * var(--gutter)) * 0.58);
+    }
+
+    .crew-head {
+      padding-top: calc(var(--step) + 3rem);
+    }
+
+    .crew-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding-top: var(--space-md);
+    }
+
+    .crew-card {
+      align-self: var(--m-side);
+      width: var(--m-w);
+      margin-top: var(--m-gap);
+    }
+
+    /* on phones the strip runs along the side facing the middle of the screen, or the top, so
+       nothing pokes into the side margins */
+    .crew-card .crew-media::after {
+      top: -0.9rem;
+      bottom: 30%;
+      left: auto;
+      right: auto;
+      width: 6px;
+      height: auto;
+      display: block;
+    }
+
+    .crew-card--m-strip-left .crew-media::after {
+      left: -6px;
+    }
+
+    .crew-card--m-strip-right .crew-media::after {
+      right: -6px;
+    }
+
+    .crew-card--m-strip-top .crew-media::after {
+      top: -6px;
+      bottom: auto;
+      left: 30%;
+      right: 0;
+      width: auto;
+      height: 6px;
+    }
+
+    .crew-card--m-strip-none .crew-media::after {
+      display: none;
+    }
+
+    /* the first card's colour block peeks out above it only, inside the margin */
+    .crew-block {
+      top: -0.6rem;
+      right: 0;
+    }
+
+    /* one picture runs to both edges of the screen: the single change of scale in the column */
+    .crew-card--bleed .crew-media {
+      margin-inline: calc(-1 * var(--gutter));
+    }
+
+    /* its label and initials stay on the page margin, lined up with the words below */
+    .crew-card--bleed .crew-panel {
+      padding-inline: var(--gutter);
+      border-inline: 0;
+    }
+
+    .crew-soon {
+      font-size: 0.68rem;
+    }
+
+    .crew-name {
+      font-size: 1.6rem;
+    }
+
+    .crew-card--feature .crew-name {
+      font-size: 2.2rem;
+    }
+
+    /* more lime under the box, so the next card can tuck into it with a clear strip of lime above */
+    .crew-statement {
+      margin-top: 2.5rem;
+      padding-bottom: 4.75rem;
+    }
+
+    /* the edge-to-edge card is wide on phones, and its strip starts on the same line as the step and
+       the first card's colour block */
+    .crew-card--bleed .crew-panel,
+    .crew-card--bleed :global(.photo) {
+      aspect-ratio: 4 / 3 !important;
+    }
+
+    .crew-card--bleed.crew-card--m-strip-top .crew-media::after {
+      left: calc(var(--gutter) + (100% - 2 * var(--gutter)) * 0.58);
+    }
+
+    /* the first card is square on phones, so it doesn't take a whole screen */
+    .crew-card--feature .crew-panel,
+    .crew-card--feature :global(.photo) {
+      aspect-ratio: 1 / 1 !important;
+    }
+
+    .crew-statement::before {
+      left: calc(50% - 50vw + 2.5rem);
+    }
+
+    .crew-statement-inner {
+      margin-left: 0;
+      margin-right: var(--offset);
+    }
+
+    /* inside the box the coloured phrases can hang a little to the left, like on wider screens */
+    .crew-statement-box :global(.statement-box) {
+      margin-left: -0.16em;
+    }
+  }
+</style>

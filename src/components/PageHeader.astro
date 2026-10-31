@@ -1,43 +1,71 @@
 ---
 // Big title at the top of inner pages, e.g. "03 · News".
 // The number matches the page's position in the top navigation.
+//
+// With an image (a file in public/images/pages/), the header becomes a full-width photo
+// band like the Home video: the photo runs up under the menu and the title sits over its
+// lower part. The page must also use <BaseLayout headerOverlay> so the menu floats on top.
+// Without an image (or if the file is missing), it's the plain title with a faint glow.
 import { mainNav } from '../data/site';
+import { imageExists, imageUrl } from '../lib/images';
+import { url } from '../lib/url';
+import { keepDots, keepUnits } from '../lib/text';
 
 interface Props {
-  title: string;     // the page name, shown in the small label ("02 · The Problem")
-  heading?: string;  // the big headline, if different from the page name
-  href: string;      // the page's address, used to look up its nav number
+  title: string;          // the page name, shown in the small label ("02 · The Problem")
+  heading?: string;       // the big headline, if different from the page name
+  href: string;           // the page's address, used to look up its nav number
   intro?: string;
+  caption?: string;       // short line shown in [ brackets ] on a hairline under the title, e.g. '50–300 m · The twilight zone'
+  image?: string;         // filename in public/images/pages/, e.g. 'news.jpg'
+  imagePosition?: string; // the part of the photo to keep when a narrow screen crops it ('50% 50%' = center)
 }
 
-const { title, heading = title, href, intro } = Astro.props;
+const { title, heading = title, href, intro, caption, image, imagePosition = '50% 50%' } = Astro.props;
 const navIndex = mainNav.findIndex((item) => item.href === href);
 const number = navIndex >= 0 ? String(navIndex + 1).padStart(2, '0') : null;
+const hasImage = !!image && imageExists(`pages/${image}`);
+const photoUrl = imageUrl(`pages/${image}`);
 ---
 
-<header class="container page-header" data-reveal-group>
-  {number && <p class="label page-num">{number} · {title}</p>}
-  <h1 class="page-title">{heading}</h1>
-  {intro && <p class="page-intro">{intro}</p>}
-  <!-- Anything placed inside <PageHeader>...</PageHeader> (e.g. a button) shows here -->
-  {Astro.slots.has('default') && <div class="page-actions"><slot /></div>}
+<header class:list={['page-header', { 'page-header--image': hasImage }]}>
+  {hasImage && (
+    <div class="page-header-media" aria-hidden="true">
+      <img src={photoUrl} alt="" fetchpriority="high" style={`object-position: ${imagePosition};`} data-parallax="0.35" />
+    </div>
+  )}
+
+  <div class="container page-header-inner" data-reveal-group>
+    {number && <p class="label page-num">{number} · {title}</p>}
+    <h1 class:list={['page-title', { 'page-title--long': heading.length > 24 }]}>{keepUnits(heading)}</h1>
+    <!-- Caption line: a hairline with a hatched stripe on the left and the caption in brackets on the right -->
+    {caption && (
+      <div class="page-meta">
+        <span class="page-hatch slashes" aria-hidden="true"></span>
+        <p class="label page-caption">[ {keepDots(keepUnits(caption))} ]</p>
+      </div>
+    )}
+    {intro && <p class="page-intro">{keepUnits(intro)}</p>}
+    <!-- Anything placed inside <PageHeader>...</PageHeader> (e.g. a button) shows here -->
+    {Astro.slots.has('default') && <div class="page-actions"><slot /></div>}
+  </div>
 </header>
 
 <style>
   .page-header {
     position: relative;
+  }
+
+  .page-header-inner {
     padding-block: var(--space-2xl) var(--space-xl);
   }
 
-  /* Faint cyan glow behind the title, like light reaching down from the surface */
-  .page-header::before {
+  /* No photo: faint cyan glow behind the title, like light reaching down from the surface */
+  .page-header:not(.page-header--image)::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: calc(50% - 50vw); /* stretch to the screen edges so the glow never has a visible box edge */
+    inset: 0;
     z-index: -1;
-    width: 100vw;
-    height: 100%;
     background: radial-gradient(
       50rem 20rem at 12% 0%,
       color-mix(in srgb, var(--color-accent) 12%, transparent),
@@ -46,9 +74,66 @@ const number = navIndex >= 0 ? String(navIndex + 1).padStart(2, '0') : null;
     pointer-events: none;
   }
 
+  /* ---------- With a photo ---------- */
+
+  .page-header--image {
+    display: flex;
+    align-items: flex-end;
+    min-height: 100svh; /* the whole first screen, down to the bottom of the window (like the Home video) */
+    /* The menu floats on top, so pull the photo up underneath it (same as the Home hero) */
+    margin-top: calc(-1 * var(--header-height));
+    overflow: hidden;
+    isolation: isolate; /* keeps the photo's z-index: -1 inside this header */
+  }
+
+  .page-header-media {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+
+  /* The photo fills the band, cropping the edges (object-position picks which part stays).
+     Its false-color glitch is part of the image file itself, so it's always on, like Colossal's. */
+  .page-header-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: photo-in 1.4s var(--ease) both;
+  }
+
+  /* No dark shading over the photo: it shows at full brightness. The title and intro carry a soft
+     dark glow of their own (below), so they still read on a bright picture. */
+
+  .page-header--image .page-header-inner {
+    padding-block: calc(var(--header-height) + var(--space-xl)) var(--space-xl);
+  }
+
+  @keyframes photo-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-header-media img {
+      animation: none;
+    }
+  }
+
+  /* ---------- Text ---------- */
+
   .page-num {
     margin: 0 0 var(--space-sm);
     color: var(--color-accent);
+  }
+
+  /* On a photo the number gets the same dark glassy box as the captions, so it reads on any colour */
+  .page-header--image .page-num {
+    width: fit-content;
+    padding: 0.3rem 0.55rem;
+    background: rgb(6 18 31 / 0.55);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
   }
 
   .page-title {
@@ -56,8 +141,55 @@ const number = navIndex >= 0 ? String(navIndex + 1).padStart(2, '0') : null;
     font-size: var(--text-hero);
   }
 
+  /* a soft dark glow behind the white words, so they read on a bright photo without darkening it */
+  .page-header--image .page-title {
+    text-shadow: 0 0 2rem rgb(6 18 31 / 0.55), 0 1px 3px rgb(6 18 31 / 0.45);
+  }
+
+  .page-header--image .page-intro {
+    text-shadow: 0 0 1.2rem rgb(6 18 31 / 0.75), 0 1px 2px rgb(6 18 31 / 0.6);
+  }
+
+  /* a long headline (Positions) a size down, so it takes two lines like the others, not three,
+     and every page's header keeps about the same shape */
+  .page-title--long {
+    max-width: 20ch;
+    font-size: clamp(2.6rem, 1rem + 6.4vw, 6.75rem);
+  }
+
   .page-actions {
     margin-top: var(--space-lg);
+  }
+
+  /* ---------- Caption line ---------- */
+
+  .page-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+    padding-top: var(--space-sm);
+    border-top: 1px solid color-mix(in srgb, var(--color-text) 30%, transparent);
+  }
+
+  /* The "//////" stripe: a repeating gradient that draws a 1px slanted line every 7px */
+  .page-hatch {
+    flex: 0 1 22rem;
+    height: 0.9rem;
+    background-color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  }
+
+  /* A boxed tag: a dark glassy backing keeps it readable on any photo, bright or dark */
+  .page-caption {
+    margin: 0 0 0 auto;
+    padding: 0.35rem 0.65rem;
+    text-wrap: balance; /* if it wraps, both lines get a similar length (no lone "]") */
+    text-align: right;
+    color: var(--color-text);
+    background: rgb(6 18 31 / 0.55);
+    border: 1px solid rgb(232 241 245 / 0.25);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
   }
 
   .page-intro {
@@ -65,5 +197,41 @@ const number = navIndex >= 0 ? String(navIndex + 1).padStart(2, '0') : null;
     margin: var(--space-lg) 0 0;
     font-size: var(--text-lg);
     line-height: 1.5;
+    text-wrap: pretty; /* no single word left alone on the last line */
+  }
+
+  @media (max-width: 760px) {
+    .page-header--image {
+      min-height: 100svh;
+    }
+
+    /* Phones: stripe on top, caption under it, both left-aligned, so long captions wrap cleanly */
+    .page-meta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-xs);
+    }
+
+    .page-hatch {
+      flex: none;
+      width: 7rem;
+    }
+
+    .page-caption {
+      margin-left: 0;
+      text-align: left;
+    }
+
+    .page-intro {
+      font-size: var(--text-base);
+    }
+
+    /* one size for every page title on phones, comfortably bigger than the section headings below;
+       long titles wrap to a third line rather than shrink */
+    .page-title,
+    .page-title--long {
+      max-width: none;
+      font-size: clamp(2.75rem, 12.5vw, 3.6rem);
+    }
   }
 </style>

@@ -1,9 +1,20 @@
 // Site-wide links used by the header and footer.
 // Edit this file to rename a link, change where it goes, or fill in a placeholder.
 
-export const teamEmail = '[team email]'; // PLACEHOLDER: replace with the real address, e.g. 'team@talosaur.org'
-export const financeContact = '[finance email or form]'; // PLACEHOLDER: an email address or a form link (https://...)
+// Email addresses. info@ is the main one (footer, privacy page); sales@ takes anything about money
+// (the Donate button); support@ takes technical questions. All three are listed on Work with us.
+export const teamEmail = 'info@talosaur.com';
+export const financeContact = 'sales@talosaur.com'; // an email address or a form link (https://...)
+export const supportEmail = 'support@talosaur.com';
+
+// The contact list on Work with us and in the footer, in order: what each address is for, then the address
+export const contactEmails = [
+  { label: 'General inquiries', email: teamEmail },
+  { label: 'Sales, donations and sponsorship', email: financeContact },
+  { label: 'Technical questions', email: supportEmail },
+];
 export const location = 'College Station, Texas';
+export const twitchUrl = 'https://www.twitch.tv/nand0guz'; // live build stream (footer and the Home "Talosaur Live" card)
 
 // Top navigation, in order. Numbers ("01", "02"...) are added automatically.
 export const mainNav = [
@@ -38,8 +49,9 @@ export const footerColumns = [
 // Social links. Leave href empty ('') until the account exists; it shows as plain text.
 export const socialLinks = [
   { label: 'Instagram', href: '' }, // PLACEHOLDER: Instagram URL
-  { label: 'LinkedIn', href: '' },  // PLACEHOLDER: LinkedIn URL
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/company/talosaur' },
   { label: 'YouTube', href: '' },   // PLACEHOLDER: YouTube URL
+  { label: 'Twitch', href: twitchUrl }, // the live build stream
 ];
 
 // Bottom row of the footer

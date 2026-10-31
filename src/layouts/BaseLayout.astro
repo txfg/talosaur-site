@@ -5,6 +5,7 @@
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { url } from '../lib/url';
+import { location, socialLinks, contactEmails } from '../data/site';
 import '../styles/global.css';
 
 interface Props {
@@ -12,20 +13,63 @@ interface Props {
   description?: string;
   // true = the header floats transparently over the top of the page (used with a full-screen hero)
   headerOverlay?: boolean;
+  // true = ask search engines to leave this page out of their results (used by the 404 page)
+  noindex?: boolean;
 }
+
+const defaultDescription =
+  'Talosaur is a Texas-based student team building a low-cost underwater robot that finds, follows and films marine life in the ocean\'s twilight zone.';
 
 const {
   title,
   headerOverlay = false,
-  description = 'Talosaur is a Texas-based student team building a low-cost underwater robot that finds, follows and films marine life in the ocean\'s twilight zone.',
+  noindex = false,
+  description = defaultDescription,
 } = Astro.props;
 
-const fullTitle = title ? `${title} | Talosaur` : 'Talosaur';
+// The tab title, which is also the blue link text in search results.
+// Inner pages: "News | Talosaur". Home: the name first, then a few words on what Talosaur is,
+// so a search for "talosaur" finds a page that is clearly about Talosaur.
+const fullTitle = title ? `${title} | Talosaur` : 'Talosaur | Low-cost underwater robot for the twilight zone';
 
-// Full addresses for the social-share preview (uses "site" and "base" in astro.config.mjs).
+// Full addresses (uses "site" and "base" in astro.config.mjs).
 // Astro.url.pathname already includes the base; the image path gets it from url().
 const pageUrl = new URL(Astro.url.pathname, Astro.site);
 const shareImage = new URL(url('/images/og-image.jpg'), Astro.site);
+const homeUrl = new URL(url('/'), Astro.site);
+const isHome = pageUrl.href === homeUrl.href;
+
+// Structured data for search engines, on the Home page only: tells Google the site is called
+// "Talosaur", who runs it, and which logo and social accounts belong to it.
+// It isn't shown on the page. Social accounts are added automatically once their links are filled
+// in src/data/site.ts. Twitch is left out because that channel belongs to a team member, not the team.
+const [city, region] = location.split(',').map((part) => part.trim());
+const sameAs = socialLinks.filter((link) => link.href && link.label !== 'Twitch').map((link) => link.href);
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${homeUrl.href}#website`,
+      name: 'Talosaur',
+      url: homeUrl.href,
+      publisher: { '@id': `${homeUrl.href}#organization` },
+    },
+    {
+      '@type': 'Organization',
+      '@id': `${homeUrl.href}#organization`,
+      name: 'Talosaur',
+      url: homeUrl.href,
+      logo: new URL(url('/apple-touch-icon.png'), Astro.site).href,
+      description: defaultDescription,
+      address: { '@type': 'PostalAddress', addressLocality: city, addressRegion: region, addressCountry: 'US' },
+      email: contactEmails[0].email,
+      // one contact point per address in src/data/site.ts, so search engines know which to show
+      contactPoint: contactEmails.map((contact) => ({ '@type': 'ContactPoint', contactType: contact.label, email: contact.email })),
+      ...(sameAs.length ? { sameAs } : {}),
+    },
+  ],
+};
 ---
 
 <!doctype html>
@@ -37,7 +81,13 @@ const shareImage = new URL(url('/images/og-image.jpg'), Astro.site);
     <meta name="theme-color" content="#06121f" />
     <title>{fullTitle}</title>
 
-    <!-- Icons. PLACEHOLDER: swap favicon.svg, favicon.png and apple-touch-icon.png for the real logo -->
+    <!-- Search engines: the one official address for this page (so http://, www. and https://
+         versions all count as the same page), and whether to list it at all -->
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={pageUrl} />}
+    <link rel="sitemap" href={url('/sitemap-index.xml')} />
+    {isHome && <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />}
+
+    <!-- Icons: the striped-disc mark on a navy tile, from the brand pack (public/favicon.*, public/apple-touch-icon.png) -->
     <link rel="icon" type="image/svg+xml" href={url('/favicon.svg')} />
     <link rel="icon" type="image/png" sizes="64x64" href={url('/favicon.png')} />
     <link rel="apple-touch-icon" href={url('/apple-touch-icon.png')} />
@@ -53,12 +103,14 @@ const shareImage = new URL(url('/images/og-image.jpg'), Astro.site);
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!-- Google Fonts: Archivo (headlines), Inter (body), IBM Plex Mono (labels) -->
+    <!-- Google Fonts: Archivo (headlines), Inter (body), IBM Plex Mono (labels) and Martian Mono (the
+         wide "technical" titles in the plans sections on Who we are and Work with us). A browser only
+         downloads a font when the page it is on actually uses it. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Martian+Mono:wdth,wght@75..112.5,300..500&display=swap"
     />
 
     <!-- Marks that JavaScript is running, so the scroll-in animations only hide things when they can reveal them -->
@@ -95,6 +147,69 @@ const shareImage = new URL(url('/images/og-image.jpg'), Astro.site);
 
         // Safety net: if anything is still hidden after a few seconds, show it anyway.
         setTimeout(() => targets.forEach((el) => el.classList.add('is-visible')), 4000);
+      }
+
+      // Scroll-under effect (like Colossal): some pictures move at a slightly different speed
+      // from the page, and the next section, painted on top of them, slides over what pokes out.
+      //   data-parallax="0.4"  pictures at the very top of a page (Home video, page header photos):
+      //                        they move down 0.4 px for every 1 px you scroll, so they lag behind
+      //                        and the next section covers them.
+      //   data-drift="120"     the element sits up to 120 px lower when it enters at the bottom of
+      //                        the screen and rises into its normal place as it leaves at the top.
+      //   data-pan="160"       for photos inside a band that clips them (PhotoBand): the photo moves
+      //                        from 80 px up to 80 px down as the band passes, so it seems slower.
+      // Sections cover each other because every .band has position: relative and its own
+      // background (see global.css). Turned off for "reduce motion".
+      const parallax = [...document.querySelectorAll<HTMLElement>('[data-parallax]')];
+      const drifting = [...document.querySelectorAll<HTMLElement>('[data-drift], [data-pan]')];
+
+      if (!reduceMotion && (parallax.length || drifting.length)) {
+        const homes = new Map<HTMLElement, { top: number; height: number }>();
+        let queued = false;
+        let k = 1; // smaller moves on smaller screens (like Colossal, about a third on phones)
+
+        // Where each drifting element sits on the page without its offset
+        const measure = () => {
+          k = Math.min(1, Math.max(0.35, window.innerWidth / 1280));
+          for (const el of drifting) {
+            el.style.transform = '';
+            const r = el.getBoundingClientRect();
+            homes.set(el, { top: r.top + window.scrollY, height: r.height });
+          }
+          update();
+        };
+
+        const update = () => {
+          queued = false;
+          const y = window.scrollY;
+          const vh = window.innerHeight;
+          for (const el of parallax) {
+            if (y > vh * 1.5) continue; // long gone off the top
+            el.style.transform = `translate3d(0, ${(y * Number(el.dataset.parallax)).toFixed(1)}px, 0)`;
+          }
+          for (const el of drifting) {
+            const home = homes.get(el);
+            if (!home) continue;
+            // 0 when its top reaches the bottom of the screen, 1 when its bottom passes the top
+            const p = Math.min(1, Math.max(0, (y + vh - home.top) / (vh + home.height)));
+            const offset = el.dataset.pan
+              ? (p - 0.5) * Number(el.dataset.pan) // pan: always the full range, the photo has room for it
+              : (1 - p) * Number(el.dataset.drift) * k;
+            el.style.transform = `translate3d(0, ${offset.toFixed(1)}px, 0)`;
+          }
+        };
+
+        const queue = () => {
+          if (!queued) {
+            queued = true;
+            requestAnimationFrame(update);
+          }
+        };
+
+        window.addEventListener('scroll', queue, { passive: true });
+        window.addEventListener('resize', () => requestAnimationFrame(measure));
+        window.addEventListener('load', measure); // images loaded, positions are final
+        measure();
       }
     </script>
   </body>

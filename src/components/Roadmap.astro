@@ -1,0 +1,364 @@
+---
+// The plan as a dive: numbered steps that sink a little lower each time, joined by a thin line like
+// a dive profile (along, then down to the next stop), ending flat at the depth we're aiming for.
+// On tablets and phones it becomes a plain list with the line running down the left.
+//
+// A silhouette of Turtle (its outside shape only, traced from the team's side view, the same outline
+// as the Home Turtle drawing) rides the line: as you scroll through, it dives from the first stop to
+// the last. With "reduce motion" turned on it stays at the first stop.
+//
+//   <Roadmap steps={[{ status: 'Building now', title: 'Turtle', text: '...', link: { label: 'Build log', href: '/news' } }]} depth="50–300 m" />
+//
+// Used on Home, Section 02 "What we're doing" (the steps are `plan.steps` in src/data/home.ts).
+import { url } from '../lib/url';
+import { keepUnits } from '../lib/text';
+
+interface Step {
+  status: string;   // where it stands: 'Building now', 'Next', 'The goal'
+  title: string;
+  text: string;
+  link?: { label: string; href: string };
+}
+
+interface Props {
+  steps: Step[];
+  depth?: string;   // the label at the bottom end of the line, e.g. '50–300 m'
+}
+
+const { steps, depth } = Astro.props;
+const pad = (n: number) => String(n + 1).padStart(2, '0');
+
+// Titles are shown in capitals; these words keep their own spelling (eDNA would otherwise read "EDNA"),
+// the same as in Card.astro
+const KEEP_CASE = /(eDNA)/;
+const titleParts = (title: string) => title.split(KEEP_CASE).map((part) => ({ part, keep: KEEP_CASE.test(part) }));
+---
+
+<div class="roadmap" data-roadmap style={`--steps: ${steps.length};`}>
+  <!-- Turtle's side view as one solid shape: hull, front collar and dome, the clamps and rail on top,
+       the housing on top, two weights underneath and the fittings at the back -->
+  <svg class="roadmap-sub" viewBox="248 134 962 380" aria-hidden="true">
+    <rect x="277" y="250" width="738" height="238" rx="14" />
+    <rect x="1015" y="236" width="40" height="266" />
+    <rect x="1055" y="230" width="30" height="278" />
+    <path d="M1085 250 A120 120 0 0 1 1085 490 Z" />
+    <rect x="252" y="289" width="26" height="22" />
+    <rect x="252" y="339" width="26" height="22" />
+    <rect x="252" y="384" width="26" height="22" />
+    <rect x="252" y="426" width="26" height="22" />
+    <rect x="470" y="230" width="385" height="21" />
+    <rect x="470" y="230" width="45" height="262" />
+    <rect x="810" y="230" width="45" height="262" />
+    <rect x="590" y="138" width="148" height="84" />
+    <rect x="658" y="220" width="12" height="12" />
+    <rect x="540" y="458" width="65" height="52" rx="6" />
+    <rect x="715" y="458" width="65" height="52" rx="6" />
+  </svg>
+  <ol class="roadmap-steps" data-reveal-group>
+    {steps.map((step, i) => (
+      <li class="step" style={`--i: ${i};`}>
+        <span class="step-dot" aria-hidden="true"></span>
+        <!-- the line to the next stop: along, then down. The last stop's line runs on flat. -->
+        <svg class="step-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          {i < steps.length - 1
+            ? <polyline points="0,0 62,0 100,100" vector-effect="non-scaling-stroke" />
+            : <polyline points="0,0 100,0" vector-effect="non-scaling-stroke" />}
+        </svg>
+        {i === steps.length - 1 && depth && <span class="label step-depth" aria-hidden="true">[ {keepUnits(depth)} ]</span>}
+        <p class="label step-status"><span class="step-num">{pad(i)}</span> {step.status}</p>
+        <h3 class="step-title">{titleParts(step.title).map(({ part, keep }) => (keep ? <span class="keep-case">{part}</span> : part))}</h3>
+        <p class="step-text">{keepUnits(step.text)}</p>
+        {step.link && (
+          <a class="label step-link" href={url(step.link.href)}>{step.link.label} <span aria-hidden="true">→</span></a>
+        )}
+      </li>
+    ))}
+  </ol>
+</div>
+
+<style>
+  .roadmap {
+    --drop: clamp(3rem, 4.5vw, 4.75rem);  /* how much lower each stop sits than the one before */
+    --gap: var(--space-lg);
+    position: relative;
+  }
+
+  .roadmap-steps {
+    display: grid;
+    grid-template-columns: repeat(var(--steps), minmax(0, 1fr));
+    gap: var(--gap);
+    margin: 0;
+    /* room under the list for the stops that have sunk */
+    padding: 0.5rem 0 calc((var(--steps) - 1) * var(--drop));
+    list-style: none;
+  }
+
+  .step {
+    position: relative;
+    padding-top: var(--space-md);
+    padding-right: var(--space-sm);
+    /* "translate" (not "transform"), so it adds to the fade-in animation */
+    translate: 0 calc(var(--i) * var(--drop));
+  }
+
+  /* the orange ring with a dot in it, as on the story band numbers */
+  .step-dot {
+    position: absolute;
+    z-index: 1;
+    top: -0.5rem;
+    left: 0;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid var(--color-orange);
+    border-radius: 50%;
+    background: var(--color-bg);
+    box-shadow: inset 0 0 0 2px var(--color-bg), inset 0 0 0 5px var(--color-orange);
+  }
+
+  /* from this stop's dot to the next one's: one column plus the gap across, one drop down */
+  .step-line {
+    position: absolute;
+    top: 0;
+    left: 0.5rem;
+    width: calc(100% + var(--gap));
+    height: var(--drop);
+    overflow: visible;
+  }
+
+  .step:last-child .step-line {
+    width: calc(100% - 0.5rem);
+  }
+
+  .step-line polyline {
+    fill: none;
+    stroke: var(--color-text);
+    stroke-width: 1;
+  }
+
+  /* under the flat end of the line (Turtle rides above it); not in capitals, so the unit stays "m" */
+  .step-depth {
+    position: absolute;
+    top: 0.6rem;
+    right: 0;
+    color: var(--color-accent);
+    text-transform: none;
+  }
+
+  /* Turtle's silhouette. The script below moves it along the line; without the script it waits
+     just above the first stop. */
+  .roadmap-sub {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    left: 0;
+    width: clamp(4rem, 5.5vw, 6rem);
+    height: auto;
+    overflow: visible;
+    fill: var(--color-text);
+    pointer-events: none;
+    transform-origin: 50% 100%;
+    transform: translate(0.75rem, calc(0.5rem - 100% - 0.35rem));
+    will-change: transform;
+  }
+
+  .step-status {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0;
+    color: var(--color-muted);
+  }
+
+  .step-num {
+    color: var(--color-accent);
+  }
+
+  .step-title {
+    margin-top: var(--space-sm);
+    font-size: clamp(1.4rem, 1rem + 0.9vw, 2rem);
+    line-height: 1;
+  }
+
+  .keep-case {
+    text-transform: none;
+  }
+
+  .step-text {
+    margin: var(--space-sm) 0 0;
+    line-height: 1.5;
+  }
+
+  .step-link {
+    display: inline-block;
+    margin-top: var(--space-sm);
+    padding-block: 0.4rem; /* an easier tap target on phones */
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  .step-link:hover {
+    text-decoration: underline;
+  }
+
+  /* ---------- Tablets and phones: a straight list, the line running down the left ---------- */
+
+  @media (max-width: 1099px) {
+    .roadmap-steps {
+      position: relative;
+      grid-template-columns: 1fr;
+      gap: var(--space-xl);
+      padding: 0 0 0 2.75rem;
+    }
+
+    .roadmap-steps::before {
+      content: '';
+      position: absolute;
+      top: 0.5rem;
+      bottom: 0;
+      left: 1rem;
+      width: 1px;
+      background: linear-gradient(var(--color-text) 85%, transparent);
+    }
+
+    .step {
+      max-width: 36rem;
+      padding-top: 0;
+      translate: none;
+    }
+
+    .step-dot {
+      top: 0;
+      left: -2.25rem;
+    }
+
+    .step-line {
+      display: none;
+    }
+
+    /* here it rides down the line on the left, nose first: a little bigger and in the accent
+       colour, so at phone size it reads as Turtle rather than a dark smudge on the line */
+    .roadmap-sub {
+      width: 4.5rem;
+      fill: var(--color-accent);
+      transform-origin: 50% 50%;
+      transform: translate(calc(1rem - 50%), 0) rotate(90deg);
+    }
+
+    .step-depth {
+      position: static;
+      display: block;
+      margin-bottom: 0.4rem;
+    }
+  }
+</style>
+
+<script>
+  // Move Turtle's silhouette along the dive line as the plan scrolls through the screen.
+  // The line is rebuilt from where the stops actually are each time, so it always matches the layout.
+  type Pt = { x: number; y: number };
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const narrow = window.matchMedia('(max-width: 1099px)');
+
+  document.querySelectorAll<HTMLElement>('[data-roadmap]').forEach((map) => {
+    const sub = map.querySelector<SVGSVGElement>('.roadmap-sub');
+    const dots = [...map.querySelectorAll<HTMLElement>('.step-dot')];
+    if (!sub || dots.length < 2) return;
+
+    // The points of the line, relative to the top left of the plan
+    const linePoints = (): Pt[] => {
+      const box = map.getBoundingClientRect();
+      const c = dots.map((dot) => {
+        const r = dot.getBoundingClientRect();
+        return { x: r.left + r.width / 2 - box.left, y: r.top + r.height / 2 - box.top };
+      });
+      if (narrow.matches) {
+        // straight down the left, through every stop, to the end of the list
+        return [...c, { x: c[0].x, y: box.height - 8 }];
+      }
+      // along, then down to the next stop (the knee is 62% of the way, as in the drawn line), then flat to the end
+      const pts: Pt[] = [];
+      c.forEach((p, i) => {
+        pts.push(p);
+        const next = c[i + 1];
+        if (next) pts.push({ x: p.x + 0.62 * (next.x - p.x), y: p.y });
+      });
+      pts.push({ x: box.width, y: c[c.length - 1].y });
+      return pts;
+    };
+
+    // The point a distance d along the line
+    const pointAt = (pts: Pt[], d: number): Pt => {
+      for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1], b = pts[i];
+        const len = Math.hypot(b.x - a.x, b.y - a.y);
+        if (d <= len || i === pts.length - 1) {
+          const t = len ? Math.min(1, Math.max(0, d / len)) : 0;
+          return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+        }
+        d -= len;
+      }
+      return pts[pts.length - 1];
+    };
+
+    const place = () => {
+      const box = map.getBoundingClientRect();
+      const vh = window.innerHeight;
+      if (box.bottom < -200 || box.top > vh + 200) return;
+
+      const pts = linePoints();
+      let total = 0;
+      for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+
+      // 0 when the plan's top is 80% of the way down the screen, 1 when its bottom is 55% of the way down
+      const progress = reduceMotion ? 0 : Math.min(1, Math.max(0, (vh * 0.8 - box.top) / (vh * 0.25 + box.height)));
+
+      // Turtle's own size, before turning (on the vertical line it's turned on its side, but its
+      // length along the line is the same)
+      const W = sub.clientWidth || 64;
+      const H = sub.clientHeight || 25;
+      const half = W / 2;
+      // keep the whole silhouette on the line: start half a length in, stop half a length before the end
+      const d = half + progress * Math.max(0, total - 2 * half);
+      const p = pointAt(pts, d);
+      // the direction, looking a little ahead and behind, so it turns smoothly at the corners
+      const ahead = pointAt(pts, d + 28), behind = pointAt(pts, Math.max(0, d - 28));
+      const angle = (Math.atan2(ahead.y - behind.y, ahead.x - behind.x) * 180) / Math.PI;
+
+      if (narrow.matches) {
+        // centred on the line
+        sub.style.transform = `translate(${(p.x - W / 2).toFixed(1)}px, ${(p.y - H / 2).toFixed(1)}px) rotate(${angle.toFixed(1)}deg)`;
+      } else {
+        // riding just above the line, turning about the middle of its underside
+        sub.style.transform = `translate(${(p.x - W / 2).toFixed(1)}px, ${(p.y - H - 5).toFixed(1)}px) rotate(${angle.toFixed(1)}deg)`;
+      }
+    };
+
+    let queued = false;
+    const queue = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        place();
+      });
+    };
+
+    place();
+    window.addEventListener('resize', queue);
+    narrow.addEventListener('change', queue);
+    if (!reduceMotion) {
+      window.addEventListener('scroll', queue, { passive: true });
+      // the stops fade up into place when they first appear, so follow them for a moment
+      const settle = (until: number) => {
+        place();
+        if (performance.now() < until) requestAnimationFrame(() => settle(until));
+      };
+      new IntersectionObserver((entries, obs) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          settle(performance.now() + 1500);
+          obs.disconnect();
+        }
+      }).observe(map);
+    }
+  });
+</script>

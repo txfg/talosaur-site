@@ -1,0 +1,176 @@
+---
+// One big sentence in thin, wide capitals with a phrase or two in colour boxes, then a short
+// paragraph set off to the right under a hairline with an orange dot. For text about the team or
+// the project as a whole (Colossal's big uppercase statements).
+//
+//   <Statement tag="What we share" headline="Many disciplines, **one vehicle**" text="..." signoff="The Talosaur team" />
+//
+// Put ** on both sides of a phrase in the headline to give it a box: violet, and lime for the last one.
+// Used on Who we are ("What we share") and Home ("What we're doing").
+interface Props {
+  tag?: string;       // small [ label ] above, with a slash strip
+  headline: string;
+  text?: string;      // the paragraph under it
+  signoff?: string;   // a small [ label ] under the paragraph
+}
+
+const { tag, headline, text, signoff } = Astro.props;
+
+// "Many disciplines, **one vehicle**" -> ['Many disciplines, ', 'one vehicle', ''] (odd items get a box)
+const parts = headline.split(/\*\*(.+?)\*\*/);
+const lastBox = parts.length - 2;
+---
+
+<div class="statement">
+  {tag && (
+    <div class="statement-head" data-reveal>
+      <p class="label statement-tag">[ {tag} ]</p>
+      <span class="statement-hatch slashes" aria-hidden="true"></span>
+    </div>
+  )}
+  <p class="statement-line" data-reveal>
+    {parts.map((part, i) => (i % 2 === 1 ? <span class:list={['statement-box', { 'statement-box--lime': i === lastBox }]}>{part}</span> : part))}
+  </p>
+  <!-- the paragraph drifts a little slower than the page (data-drift), on a wrapper so it doesn't fight the fade-in -->
+  {(text || signoff) && (
+    <div class="statement-body" data-drift="40">
+      <div data-reveal>
+        {text && <p class="statement-text">{text}</p>}
+        {signoff && <p class="label statement-sign">[ {signoff} ]</p>}
+      </div>
+    </div>
+  )}
+</div>
+
+<style>
+  .statement {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-lg);
+  }
+
+  .statement-head {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .statement-tag {
+    margin: 0;
+    padding: 0.3rem 0.55rem;
+    border: 1px solid var(--color-text);
+    color: var(--color-text);
+  }
+
+  .statement-hatch {
+    flex: 0 0 8rem;
+    height: 0.9rem;
+    background-color: var(--color-muted);
+  }
+
+  .statement-line {
+    grid-column: 1 / span 11;
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-stretch: 125%;
+    font-size: clamp(2rem, 0.8rem + 3.8vw, 5.2rem);
+    line-height: 1.06;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+
+  /* the box's padding is pulled back by the same amount, so a line that starts with a box lines up
+     with the plain lines */
+  .statement-box {
+    margin-left: -0.16em;
+    padding: 0 0.16em;
+    color: var(--color-white);
+    background: var(--color-violet);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  .statement-box--lime {
+    color: var(--light-text);
+    background: var(--color-lime);
+  }
+
+  /* on wider screens a boxed phrase stays on one line (on phones it may wrap, box and all) */
+  @media (min-width: 761px) {
+    .statement-box {
+      white-space: nowrap;
+    }
+  }
+
+  /* the paragraph sits to the right, under a hairline with an orange dot on its end */
+  .statement-body {
+    position: relative;
+    grid-column: 7 / -1;
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-text);
+  }
+
+  .statement-body::before {
+    content: '';
+    position: absolute;
+    top: -0.4rem;
+    left: 0;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 50%;
+    background: var(--color-orange);
+  }
+
+  .statement-text {
+    margin: 0;
+    font-size: var(--text-lg);
+    line-height: 1.55;
+  }
+
+  .statement-sign {
+    margin: var(--space-md) 0 0;
+    color: var(--color-accent);
+  }
+
+  @media (max-width: 900px) {
+    .statement-line,
+    .statement-body {
+      grid-column: 1 / -1;
+    }
+
+    .statement-body {
+      margin-left: clamp(0rem, 12vw, 6rem);
+    }
+  }
+
+  @media (max-width: 760px) {
+    .statement {
+      gap: var(--space-md);
+    }
+
+    .statement-line {
+      font-stretch: 112%;
+      font-size: clamp(1.7rem, 0.9rem + 4.4vw, 2.4rem);
+      line-height: 1.16; /* a little air between the coloured boxes on stacked lines */
+    }
+
+    .statement-body {
+      margin-left: 0;
+    }
+
+    .statement-text {
+      font-size: var(--text-base);
+    }
+
+    .statement-hatch {
+      flex-basis: 4rem;
+    }
+
+    /* on phones the boxes stay inside the page margin */
+    .statement-box {
+      margin-left: 0;
+    }
+  }
+</style>

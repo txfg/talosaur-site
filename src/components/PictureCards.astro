@@ -1,0 +1,156 @@
+---
+// A row of picture cards, each one a photo that goes with what its card says (like the photo-led
+// sections on Colossal's species pages). Every second card sits lower, so the row isn't flat.
+//
+//   <PictureCards columns={4} items={[{ image: 'aud-research.jpg', tag: 'Research', title: 'Research', text: '...' }]} />
+//
+// Photos live in public/images/sections/. People, lab and machine photos stay natural; nature
+// photos may have false colour (see the photo rule in the README).
+import { keepUnits } from '../lib/text';
+import { imageExists, imageUrl } from '../lib/images';
+import PhotoPlaceholder from './PhotoPlaceholder.astro';
+
+interface Item {
+  image: string;     // file name in public/images/sections/
+  title: string;     // short heading under the photo
+  text: string;      // a line or two (a [bracket] placeholder until it's written)
+  tag?: string;      // small label on the photo's corner
+  needs?: string;    // what the photo should show; until the file exists, a "photo to come" panel says so
+}
+
+interface Props {
+  items: Item[];
+  columns?: 3 | 4;
+  ratio?: string;    // photo shape, width / height
+}
+
+const { items, columns = 3, ratio = columns === 4 ? '4 / 5' : '4 / 3' } = Astro.props;
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<ol class:list={['pcards', `pcards--${columns}`]} data-reveal-group>
+  {items.map((item, i) => (
+    <li class="pcard">
+      <div class="pcard-media" style={`--ratio: ${ratio};`}>
+        {imageExists(`sections/${item.image}`) ? (
+          <>
+            <img src={imageUrl(`sections/${item.image}`)} alt="" loading="lazy" decoding="async" />
+            {item.tag && <span class="label pcard-tag" aria-hidden="true">[ {item.tag} ]</span>}
+          </>
+        ) : (
+          <PhotoPlaceholder label={item.needs ?? item.title} file={`sections/${item.image}`} />
+        )}
+      </div>
+      <p class="label pcard-num">{pad(i + 1)}</p>
+      <h3 class="pcard-title">{item.title}</h3>
+      <p class="pcard-text">{keepUnits(item.text)}</p>
+    </li>
+  ))}
+</ol>
+
+<style>
+  .pcards {
+    --step: clamp(2rem, 5vw, 5rem);  /* how much lower every second card sits */
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--space-xl) var(--space-md);
+    margin: 0;
+    padding: 0 0 var(--step);
+    list-style: none;
+  }
+
+  .pcards--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  /* "translate" (not "transform"), so it adds to the fade-in animation instead of being replaced by it */
+  .pcard:nth-child(2n) {
+    translate: 0 var(--step);
+  }
+
+  .pcard-media {
+    position: relative;
+    aspect-ratio: var(--ratio);
+    overflow: hidden;
+    border-radius: var(--radius);
+  }
+
+  .pcard-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 600ms var(--ease);
+  }
+
+  .pcard:hover .pcard-media img {
+    transform: scale(1.03);
+  }
+
+  .pcard-tag {
+    position: absolute;
+    top: 0.6rem;
+    left: 0.6rem;
+    padding: 0.25rem 0.5rem;
+    color: var(--color-white);
+    background: rgb(6 18 31 / 0.6);
+  }
+
+  .pcard-num {
+    margin: var(--space-sm) 0 0;
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .pcard-title {
+    margin-top: var(--space-xs);
+    font-size: var(--text-xl);
+  }
+
+  /* four in a row are narrower, so long words like CONSERVATION get a smaller title */
+  .pcards--4 .pcard-title {
+    font-size: clamp(1.4rem, 0.8rem + 1.4vw, 2.1rem);
+  }
+
+  .pcard-text {
+    margin: var(--space-xs) 0 0;
+    color: var(--color-muted);
+    line-height: 1.5;
+  }
+
+  /* Tablet: two across */
+  @media (max-width: 1023px) {
+    .pcards,
+    .pcards--4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* Phone: one card per row, in a wider shape, so the photo tags have room on one line */
+  @media (max-width: 600px) {
+    .pcards,
+    .pcards--4 {
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+      padding-bottom: 0;
+    }
+
+    .pcards .pcard:nth-child(2n) {
+      translate: none;
+    }
+
+    /* a wider, shorter shape on phones, so a row of four doesn't become a very long scroll */
+    .pcard-media {
+      aspect-ratio: 16 / 9;
+    }
+
+    .pcard-title {
+      font-size: 1.25rem;
+    }
+
+    .pcard-text {
+      font-size: var(--text-base);
+    }
+  }
+</style>

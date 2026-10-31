@@ -1,0 +1,205 @@
+---
+// A big full-width photo band in the middle of a page: one good photo given a whole screen,
+// like Colossal's elephant and mammoth sections. An optional headline, [ tag ] and buttons
+// sit over it. The photo pans slowly as you scroll (data-pan, see BaseLayout.astro).
+//
+// Photos live in public/images/bands/ (2400 x 1500). Use edited nature photos here
+// (false colour is for nature and animals, see the photo rule in the README).
+// To cross the edge below the band with an inset photo, put a <Patch> right after it.
+import { url } from '../lib/url';
+import { imageUrl } from '../lib/images';
+import { keepDots, keepUnits } from '../lib/text';
+
+interface Props {
+  image: string;              // file name in public/images/bands/
+  position?: string;          // which part of the photo to keep on narrow screens ('50% 50%' = center)
+  label?: string;             // small label above the headline, e.g. 'Section 04'
+  heading?: string;           // big headline over the photo
+  tag?: string;               // short line in [ brackets ] under the headline
+  split?: boolean;            // true: headline on the left, buttons (the slot) on the right
+  size?: 'lg' | 'md';         // 'md' for a whole sentence as the headline
+}
+
+const { image, position = '50% 50%', label, heading, tag, split = false, size = 'lg' } = Astro.props;
+const hasSlot = Astro.slots.has('default');
+---
+
+<section class:list={['photo-band', { 'photo-band--split': split, 'photo-band--md': size === 'md' }]}>
+  <div class="photo-band-media" aria-hidden="true">
+    <img src={imageUrl(`bands/${image}`)} alt="" width="2400" height="1500" loading="lazy" decoding="async" style={`object-position: ${position};`} data-pan="160" />
+  </div>
+
+  <div class="container photo-band-inner">
+    <div class="photo-band-head" data-reveal>
+      {label && <p class="label photo-band-label">{label}</p>}
+      {heading && <h2 class="photo-band-title">{keepUnits(heading)}</h2>}
+      {tag && (
+        <div class="photo-band-meta">
+          <span class="photo-band-hatch slashes" aria-hidden="true"></span>
+          <p class="label photo-band-tag">[ {keepDots(keepUnits(tag))} ]</p>
+        </div>
+      )}
+    </div>
+    {hasSlot && <div class="photo-band-slot"><slot /></div>}
+  </div>
+</section>
+
+<style>
+  .photo-band {
+    /* text over the photo is always light, whatever band it sits between */
+    --color-text: var(--color-white);
+    --color-muted: rgb(255 255 255 / 0.82);
+    --color-line: rgb(255 255 255 / 0.35);
+    position: relative; /* paints over what drifts down from above */
+    display: flex;
+    align-items: center;
+    min-height: clamp(32rem, 88svh, 58rem);
+    overflow: hidden;
+    background: var(--color-bg);
+    color: var(--color-text);
+  }
+
+  /* The photo is 160 px taller than the band so it can pan without showing an edge */
+  .photo-band-media {
+    position: absolute;
+    inset: -80px 0;
+  }
+
+  .photo-band-media img {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+  }
+
+  /* A soft dark wash on the left keeps the headline readable on any photo */
+  .photo-band-media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgb(6 18 31 / 0.76) 0%, rgb(6 18 31 / 0.52) 45%, rgb(6 18 31 / 0.16) 72%, transparent 88%);
+  }
+
+  .photo-band-inner {
+    position: relative;
+    padding-block: var(--space-2xl);
+  }
+
+  .photo-band--split .photo-band-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: var(--space-lg) var(--space-xl);
+    align-items: end;
+  }
+
+  .photo-band-label {
+    margin: 0 0 var(--space-sm);
+    color: var(--color-accent);
+  }
+
+  .photo-band-title {
+    max-width: 14ch; /* with balanced lines: "Our build log" and "How can we help?" never leave a word alone */
+    font-size: var(--text-hero);
+    color: var(--color-white);
+  }
+
+  /* the split band's headline shares the width with the list, so it's a size down: "How / can we / help?" */
+  .photo-band--split .photo-band-title {
+    max-width: 11ch;
+    font-size: clamp(3rem, 1rem + 7.5vw, 8rem);
+  }
+
+  .photo-band--md .photo-band-title {
+    max-width: 16ch;
+    font-size: var(--text-2xl);
+  }
+
+  .photo-band-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+  }
+
+  /* the same "//////" stripe as the page headers */
+  .photo-band-hatch {
+    flex: 0 0 7rem;
+    height: 0.9rem;
+    background-color: rgb(255 255 255 / 0.6);
+  }
+
+  .photo-band-tag {
+    margin: 0;
+    padding: 0.3rem 0.55rem;
+    text-wrap: balance; /* if it wraps, both lines get a similar length (no lone "]") */
+    color: var(--color-white);
+    background: rgb(6 18 31 / 0.55);
+    border: 1px solid rgb(232 241 245 / 0.22);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+
+  .photo-band-slot {
+    margin-top: var(--space-lg);
+  }
+
+  .photo-band--split .photo-band-slot {
+    margin-top: 0;
+  }
+
+  /* the split band (Home's "How can we help?") fades into the dark band below it */
+  .photo-band--split .photo-band-media::before {
+    content: '';
+    position: absolute;
+    inset: auto 0 80px; /* the picture runs 80 px past the band's bottom edge (room to pan) */
+    height: 12rem;
+    background: linear-gradient(to top, var(--color-bg), transparent);
+    pointer-events: none;
+  }
+
+  @media (max-width: 900px) {
+    .photo-band--split .photo-band-inner {
+      grid-template-columns: 1fr;
+    }
+
+    /* the text covers most of the photo on narrow screens, so darken it evenly */
+    .photo-band-media::after {
+      background: rgb(6 18 31 / 0.5);
+    }
+
+    /* the split band's list of links runs over the brightest part of its photo: a deeper shade */
+    .photo-band--split .photo-band-media::after {
+      background: rgb(6 18 31 / 0.68);
+    }
+
+    /* slashes on their own line above the tag, like the page headers */
+    .photo-band-meta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-xs);
+    }
+
+    .photo-band-hatch {
+      flex: none;
+      width: 7rem;
+    }
+  }
+
+  /* phones: the band hugs its text, with the same space above and below, instead of
+     filling most of the screen and leaving an empty stretch of photo under the button */
+  @media (max-width: 600px) {
+    .photo-band {
+      min-height: 0;
+    }
+
+    .photo-band-inner {
+      padding-block: calc(var(--space-2xl) + var(--space-md));
+    }
+
+    /* the full width for the headline, so it breaks into even lines (no "LOG" on its own) */
+    .photo-band-title,
+    .photo-band--md .photo-band-title {
+      max-width: none;
+    }
+  }
+</style>

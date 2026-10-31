@@ -2,40 +2,211 @@
 // Positions: open roles plus one "Apply now" button that opens the Google Form. Roles are listed in src/data/positions.ts.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
+import PhotoBand from '../components/PhotoBand.astro';
+import SectionHeader from '../components/SectionHeader.astro';
+import StoryBand from '../components/StoryBand.astro';
+import PhotoPlaceholder from '../components/PhotoPlaceholder.astro';
+import { url } from '../lib/url';
+import { imageExists, imageUrl } from '../lib/images';
 import { positions, positionsHeadline, positionsIntro, applicationFormUrl } from '../data/positions';
+
+// Life on the team (written from the Content doc and the site: where we build, the live stream, the test
+// route on the News page, the general inquiries address).
+// Photos: public/images/sections/team-build.jpg (the team at a build day) and team-lab.jpg (hands on a
+// part, the small photo in the orange frame). Until team-build.jpg exists, a "photo to come" panel shows
+// what it should be; the small photo only appears once team-lab.jpg is added.
+const life = {
+  lead: 'Most of us build in College Station. A build day is hands-on: designing parts, making them and putting the vehicle together, and you can watch some of it live on our Twitch stream. Testing starts in the pool, then moves to Lake Bryan, Lake Travis and the Gulf coast.',
+  text: 'Questions before you apply? Email info@talosaur.com and we will get back to you.',
+};
 ---
 
-<BaseLayout title="Positions" description={positionsIntro}>
-  <PageHeader title="Positions" heading={positionsHeadline} href="/positions" intro={positionsIntro}>
+<BaseLayout title="Positions" description={positionsIntro} headerOverlay>
+  <PageHeader title="Positions" heading={positionsHeadline} href="/positions" intro={positionsIntro} caption="Now recruiting" image="positions.jpg" imagePosition="58% 45%">
     <a class="button" href={applicationFormUrl} target="_blank" rel="noopener noreferrer">
       Apply now <span aria-hidden="true">→</span>
       <span class="visually-hidden">(opens the application form in a new tab)</span>
     </a>
   </PageHeader>
 
-  <section class="container">
-    <ol class="roles" data-reveal-group>
-      {positions.map((role, i) => (
-        <li class="role">
-          <p class="label role-num">{String(i + 1).padStart(2, '0')}</p>
-          <h2 class="role-title">{role.title}</h2>
-          <dl class="role-details">
-            <div>
-              <dt class="label">What you'd do</dt>
-              <dd>{role.whatYoullDo}</dd>
-            </div>
-            <div>
-              <dt class="label">Helpful skills</dt>
-              <dd>{role.skills}</dd>
-            </div>
-          </dl>
-        </li>
-      ))}
-    </ol>
-  </section>
+  <!-- Light band: everything below the photo header -->
+  <div class="band band--top theme-light">
+    <section class="container">
+      <ol class="roles" data-reveal-group>
+        {positions.map((role, i) => (
+          <li class="role">
+            <p class="label role-num">{String(i + 1).padStart(2, '0')}</p>
+            <h2 class="role-title">{role.title}</h2>
+            <dl class="role-details">
+              <div>
+                <dt class="label">What you'd do</dt>
+                <dd>{role.whatYoullDo}</dd>
+              </div>
+              <div>
+                <dt class="label">Helpful skills</dt>
+                <dd>{role.skills}</dd>
+              </div>
+            </dl>
+            <a class="label role-apply" href={applicationFormUrl} target="_blank" rel="noopener noreferrer">
+              Apply <span aria-hidden="true">→</span>
+              <span class="visually-hidden">for {role.title} (opens the application form in a new tab)</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </div>
+
+  <!-- Story band, split in two like "Bringing back the woolly mammoth" on Colossal's mammoth page:
+       a school of fish (violet with lime) on the left, a magenta and orange blur on the right, big type
+       across both, and the open roles listed on the right (from src/data/positions.ts). -->
+  <StoryBand
+    variant="split"
+    image="story-join.jpg"
+    position="50% 50%"
+    tag="Now recruiting"
+    title={`${String(positions.length).padStart(2, '0')} open roles`}
+    items={positions.map((role) => ({ title: role.title }))}
+  >
+    <a class="button" href={applicationFormUrl} target="_blank" rel="noopener noreferrer">
+      Apply now <span aria-hidden="true">→</span>
+      <span class="visually-hidden">(opens the application form in a new tab)</span>
+    </a>
+  </StoryBand>
+
+  <!-- Light band: life on the team -->
+  <div class="band band--top theme-light">
+    <!-- Section 01: life on the team. Like the "Decoding life" collage on Colossal's mammoth page:
+         a big photo with a smaller one over its corner in an offset orange frame. -->
+    <section class="container life">
+      <SectionHeader number={1} title="Life on the team" />
+      <div class="life-grid">
+        <div class="life-copy" data-reveal>
+          <p class="life-lead">{life.lead}</p>
+          <p class="life-text">{life.text}</p>
+          <a class="button" href={applicationFormUrl} target="_blank" rel="noopener noreferrer">
+            Apply now <span aria-hidden="true">→</span>
+            <span class="visually-hidden">(opens the application form in a new tab)</span>
+          </a>
+        </div>
+        <figure class="life-collage" aria-hidden="true" data-drift="60">
+          <div class="life-main">
+            {imageExists('sections/team-build.jpg') ? (
+              <img src={imageUrl('sections/team-build.jpg')} alt="" width="1600" height="1000" loading="lazy" decoding="async" />
+            ) : (
+              <PhotoPlaceholder label="the team at a build day" file="sections/team-build.jpg" />
+            )}
+          </div>
+          <!-- the small photo only shows once team-lab.jpg exists (two placeholders on top of each other would be noise) -->
+          {imageExists('sections/team-lab.jpg') && (
+            <span class="life-frame">
+              <span class="life-inset">
+                <img src={imageUrl('sections/team-lab.jpg')} alt="" width="900" height="900" loading="lazy" decoding="async" />
+              </span>
+            </span>
+          )}
+        </figure>
+      </div>
+    </section>
+  </div>
+
+
+  <!-- One big photo (bubble anemone, false colour) leading on to News. Copy: Content doc, "Our build log" card. -->
+  <PhotoBand image="positions.jpg" position="50% 50%" heading="Our build log" tag="Updates, photos and videos from every stage">
+    <a class="button" href={url('/news')}>Read the news <span aria-hidden="true">→</span></a>
+  </PhotoBand>
 </BaseLayout>
 
 <style>
+  /* Phones: the role names in the band get a size that fits the narrow column */
+  @media (max-width: 760px) {
+    :global(.story--split .split-list li) {
+      font-size: 0.95rem;
+    }
+  }
+
+  /* ---------- Life on the team ---------- */
+
+  .life {
+    padding-top: var(--space-lg);
+  }
+
+  .life-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: var(--space-xl);
+    align-items: start;
+  }
+
+  .life-lead {
+    margin: 0;
+    font-size: clamp(1.25rem, 1rem + 0.9vw, 1.75rem);
+    line-height: 1.4;
+  }
+
+  .life-text {
+    margin: var(--space-md) 0 var(--space-lg);
+    color: var(--color-muted);
+  }
+
+  .life-collage {
+    position: relative;
+    margin: 0 0 var(--space-2xl);
+  }
+
+  .life-main {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border-radius: var(--radius);
+  }
+
+  .life-main img,
+  .life-inset img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* the small photo hangs off the bottom left corner inside a thin orange frame */
+  .life-frame {
+    position: absolute;
+    left: calc(-1 * var(--space-lg));
+    bottom: calc(-1 * var(--space-2xl) + 1rem);
+    width: 38%;
+    padding: 0.9rem;
+    border: 1px solid var(--color-orange);
+    background: var(--color-bg);
+  }
+
+  .life-inset {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+  }
+
+  @media (max-width: 1023px) {
+    .life-grid {
+      grid-template-columns: 1fr;
+    }
+
+    /* on tablets and phones the small photo moves to the right corner, inside the page margin */
+    .life-frame {
+      left: auto;
+      right: 0;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .life-frame {
+      width: 46%;
+      padding: 0.5rem;
+    }
+  }
+
   .roles {
     margin: 0;
     padding: 0;
@@ -43,10 +214,10 @@ import { positions, positionsHeadline, positionsIntro, applicationFormUrl } from
     border-bottom: 1px solid var(--color-line);
   }
 
-  /* Each role is a row: number | title | details */
+  /* Each role is a row: number | title | details | Apply, with the button at the right end */
   .role {
     display: grid;
-    grid-template-columns: 3rem minmax(0, 1.2fr) minmax(0, 2fr);
+    grid-template-columns: 3rem minmax(0, 1.6fr) minmax(0, 2fr) auto;
     align-items: start;
     gap: var(--space-md) var(--space-lg);
     padding-block: var(--space-lg);
@@ -60,6 +231,27 @@ import { positions, positionsHeadline, positionsIntro, applicationFormUrl } from
 
   .role-title {
     font-size: var(--text-xl);
+  }
+
+  .role-apply {
+    justify-self: end;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px; /* a comfortable size to tap on a phone */
+    padding: 0.45rem 1rem;
+    border: 1px solid var(--color-accent);
+    border-radius: 999px;
+    color: var(--color-accent);
+    text-decoration: none;
+    transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
+  }
+
+  .role-apply:hover,
+  .role-apply:focus-visible {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
   }
 
   .role-details {
@@ -78,9 +270,15 @@ import { positions, positionsHeadline, positionsIntro, applicationFormUrl } from
     line-height: 1.5;
   }
 
+  /* tablets: number | title | Apply on the first line, the details under the title */
   @media (max-width: 1023px) {
     .role {
-      grid-template-columns: 3rem 1fr;
+      grid-template-columns: 3rem minmax(0, 1fr) auto;
+    }
+
+    .role-apply {
+      grid-column: 3;
+      grid-row: 1;
     }
 
     .role-details {
@@ -103,6 +301,15 @@ import { positions, positionsHeadline, positionsIntro, applicationFormUrl } from
       grid-column: auto;
       grid-row: auto;
       grid-template-columns: 1fr;
+      gap: var(--space-sm);
+    }
+
+    /* phones: the button closes each role, under its details */
+    .role-apply {
+      grid-column: auto;
+      grid-row: auto;
+      justify-self: start;
+      margin-top: var(--space-xs);
     }
   }
 </style>

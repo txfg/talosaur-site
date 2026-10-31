@@ -1,147 +1,787 @@
 ---
-// Who we are: team cards. Team members are listed in src/data/team.ts.
-// A member with a photo in public/images/team/ gets a photo card; without one, a solid panel with initials.
+// Who we are: the team, in the style of the people sections on Colossal's Company page.
+//   - The lead (lead: true in src/data/team.ts) gets a row of their own: a big portrait with their name
+//     in violet boxes over its corner, and a description box beside it (like Colossal's chairman feature).
+//   - Everyone else follows as a loose collage on deep navy (src/components/CrewCollage.astro), like
+//     the "Greatness is in our DNA" band on Colossal's Company page: cards of different sizes at
+//     different heights, with the team statement (teamStatement in team.ts) cut into the middle.
+//
+// Team members are listed in src/data/team.ts. A member with a photo in public/images/team/ gets a
+// photo card; without one, a plain panel with their initials. People's photos stay natural (no colour
+// edits): the colour is only in the blocks behind them.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/PageHeader.astro';
+import PhotoBand from '../components/PhotoBand.astro';
+import StoryBand from '../components/StoryBand.astro';
+import { url } from '../lib/url';
 import Photo from '../components/Photo.astro';
-import { team, teamIntro } from '../data/team';
+import CrewCollage from '../components/CrewCollage.astro';
+import { team, teamIntro, teamStatement } from '../data/team';
 import { isPlaceholder } from '../data/site';
-import { imageExists } from '../lib/images';
+import { imageExists, imageUrl } from '../lib/images';
 
 // Big faded text on a panel: "Fernando Guzman" -> "FG". A [Name] placeholder shows the role instead.
 const panelText = (name: string, role: string) =>
   isPlaceholder(name) ? role : name.split(/\s+/).map((part) => part[0]).join('').slice(0, 3).toUpperCase();
+
+// The lead goes on top on their own; the rest of the team follows in the collage
+const lead = team.find((member) => member.lead);
+const rest = team.filter((member) => member !== lead);
+const leadHasPhoto = lead ? imageExists(`team/${lead.photo}`) : false;
+
+// The disciplines for the strip, from the roles: 'Lead Mechanical Engineer' -> 'Mechanical'
+const disciplines = [
+  ...new Set(
+    rest
+      .map((member) => member.role.replace(/\b(lead|senior|engineer|engineering)\b/gi, '').trim())
+      .filter((word) => word && !isPlaceholder(word)),
+  ),
+];
+
+// The team in numbers, for the story band between the lead and the rest of the team.
+// The count comes from src/data/team.ts; the two universities and Turtle are from the page intro and Home.
+const stats = [
+  { title: String(team.length).padStart(2, '0'), text: 'Students on the team' },
+  { title: '02', text: 'Universities: Texas A&M and UT Austin' },
+  { title: '01', text: 'Vehicle in the build: Turtle' },
+];
+
+// "Where we're headed": the route from home waters outwards. The first two steps are the test route
+// on the News page; "Later" matches the three photos in the section.
+// Copy for this section and "A small crew, for now" is new (not from the Content doc): edit freely.
+const route = [
+  { when: 'First', where: 'Pool · Lake Bryan · Lake Travis' },
+  { when: 'Next', where: 'The Gulf · Flower Garden Banks' },
+  { when: 'Later', where: 'Reefs · Polar seas · Open ocean' },
+];
+const regionsText =
+  'We are starting close to home: the pool first, then Texas lakes, then the Gulf of Mexico, where the deep reefs of Flower Garden Banks reach into the twilight zone. But that zone runs under every ocean, from coral reefs to polar seas. Once Turtle is proven in the Gulf, we plan to take it further, working with the people who study those waters.';
+
+// "A small crew, for now": what the team does today, and what changes once Turtle works
+const growthText =
+  'Right now we are a small group of students, all working on Turtle. Once it works in the water, we plan to grow.';
+const growthToday = ['Building and testing Turtle', 'Streaming build days on Twitch', 'Recruiting for open roles'];
+const growthNext = ['A bigger team, from more majors and universities', 'More vehicles, built on what Turtle teaches us', 'Dives with research and conservation partners'];
 ---
 
-<BaseLayout title="Who we are" description={teamIntro}>
-  <PageHeader title="Who we are" href="/who-we-are" intro={teamIntro} />
+<BaseLayout title="Who we are" description={teamIntro} headerOverlay>
+  <PageHeader title="Who we are" href="/who-we-are" intro={teamIntro} caption="Students · College Station, Texas" image="who-we-are.jpg" imagePosition="45% 50%" />
 
-  <section class="container">
-    <ul class="team-grid" data-reveal-group>
-      {team.map((member, i) => {
-        const hasPhoto = imageExists(`team/${member.photo}`);
-        return (
-          <li class="member">
-            {hasPhoto ? (
-              <Photo file={`team/${member.photo}`} label={member.name} ratio="4 / 5" />
+  <!-- Light band: the team collage -->
+  <div class="band band--top theme-light">
+    <section class="container team">
+      <!-- The lead, on a row of their own -->
+      {lead && (
+        <article class="lead">
+          <div class="lead-media" data-drift="40">
+            <span class="member-accent member-accent--block-lime" aria-hidden="true"></span>
+            {leadHasPhoto ? (
+              <Photo file={`team/${lead.photo}`} label={lead.name} ratio="4 / 5" />
             ) : (
-              <div class="member-panel" aria-hidden="true">
-                <span class="label member-index">{String(i + 1).padStart(2, '0')}</span>
-                <span class:list={['member-initials', { 'member-initials--role': isPlaceholder(member.name) }]}>{panelText(member.name, member.role)}</span>
+              <div class="member-panel" style="aspect-ratio: 4 / 5;" aria-hidden="true">
+                <span class="label member-soon">[ Photo to come ]</span>
+                <span class="member-initials">{panelText(lead.name, lead.role)}</span>
               </div>
             )}
-            <h2 class="member-name">{member.name}</h2>
-            <p class="member-role">{member.role}</p>
-            <p class="member-major">{member.majorYear}</p>
-            {member.linkedin && (
-              <a class="member-linkedin label" href={member.linkedin} target="_blank" rel="noopener noreferrer">
-                LinkedIn <span aria-hidden="true">↗</span>
-              </a>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+            <p class="label member-tag">{lead.role}</p>
+            <!-- Name in violet boxes over the photo's corner, one box per word -->
+            <h2 class="lead-name">
+              {lead.name.split(/\s+/).map((word) => <span>{word}</span>)}
+            </h2>
+          </div>
+
+          <!-- Description box -->
+          <div class="lead-box" data-drift="100">
+            <p class="label lead-role"><span aria-hidden="true">+</span> {lead.role}</p>
+            {lead.bio && <p class="lead-bio">{lead.bio}</p>}
+            <div class="lead-foot">
+              <p class="lead-major">{lead.majorYear}</p>
+              {lead.linkedin && (
+                <a class="lead-linkedin label" href={lead.linkedin} target="_blank" rel="noopener noreferrer">
+                  LinkedIn <span aria-hidden="true">↗</span>
+                </a>
+              )}
+            </div>
+          </div>
+        </article>
+      )}
+    </section>
+  </div>
+
+  <!-- Story band: the team in numbers, over sun rays under the surface (Pexels) shifted from orange
+       to violet, like the "5.5 million square miles" stats on Colossal's mammoth page.
+       Copy: the Home "Who we are" card (Content doc). -->
+  <StoryBand variant="stats" image="story-team.jpg" position="55% 40%" tag="The team in numbers" title="A Texas-based student team" items={stats} />
+
+  <!-- The crew as a loose collage on deep navy, with the team statement cut into the middle
+       (src/components/CrewCollage.astro) -->
+  <CrewCollage members={rest} disciplines={disciplines} statement={teamStatement} />
+
+  <!-- Where we're headed: royal blue band with a wide technical title (Martian Mono), like the
+       Form Bio band on Colossal's company page. Photos (public/images/sections/): the reef seen from
+       the air breaking up into squares at its sides (regions-reef.webp, see README), a glacier front
+       and two dolphins, at different depths so they drift at different speeds while scrolling. -->
+  <section class="band theme-royal regions">
+    <div class="container">
+      <p class="label regions-tag">[ Where we're headed ]</p>
+      <h2 class="tech-title regions-title">Every ocean has a twilight zone</h2>
+
+      <div class="regions-grid">
+        <figure class="regions-photo regions-reef" data-drift="30">
+          <!-- phones get a smaller version with bigger squares (regions-reef-small.webp) -->
+          <picture>
+            <source media="(max-width: 700px)" srcset={imageUrl('sections/regions-reef-small.webp')} width="1000" height="465" />
+            <img src={imageUrl('sections/regions-reef.webp')} alt="A coral reef seen from the air, breaking up into squares at its edges" width="1800" height="837" loading="lazy" decoding="async" />
+          </picture>
+          <figcaption class="label">[ Coral reef from the air ]</figcaption>
+        </figure>
+
+        <div class="regions-text">
+          <h3 class="wide-head">Texas first. Then further.</h3>
+          <p>{regionsText}</p>
+        </div>
+
+        <ol class="regions-route">
+          {route.map((step) => (
+            <li>
+              <span class="slashes" aria-hidden="true"></span>
+              <span class="route-when">{step.when}</span>
+              <span class="route-where">{step.where}</span>
+            </li>
+          ))}
+        </ol>
+
+        <figure class="regions-photo regions-ice" data-drift="80">
+          <img src={imageUrl('sections/regions-ice.jpg')} alt="A glacier front with meltwater falling into the sea" width="1000" height="614" loading="lazy" decoding="async" />
+          <figcaption class="label">[ Polar seas · Glacier front ]</figcaption>
+        </figure>
+
+        <figure class="regions-photo regions-dolphins" data-drift="130">
+          <img src={imageUrl('sections/regions-dolphins.jpg')} alt="Two dolphins swimming down through open blue water" width="800" height="1008" loading="lazy" decoding="async" />
+          <figcaption class="label">[ Open ocean · Dolphins ]</figcaption>
+        </figure>
+      </div>
+    </div>
   </section>
+
+  <!-- A small crew, for now: the team today and once Turtle works, on a warm band (an edited photo:
+       the lily pads from the egrets photo, blurred and recoloured coral, peach, pink and yellow,
+       sections/growth-texture.jpg), so the end of the page isn't blue after blue. The headline mixes
+       two typefaces, wide black Archivo and thin Martian Mono, with the egrets photo set into it as a
+       pill. Beside the comparison, the whale in natural colour. -->
+  <section class="band growth" style={`--growth-texture: url(${imageUrl('sections/growth-texture.jpg')})`}>
+    <div class="container">
+      <p class="label growth-tag">[ Growing with Turtle ]</p>
+      <h2 class="growth-title">
+        <span class="growth-line growth-line--big">A small crew<span class="growth-comma">,</span></span>
+        <span class="growth-line growth-line--mono">
+          <span class="growth-pill"><img src={imageUrl('sections/growth-egrets.jpg')} alt="" width="2400" height="1167" loading="lazy" decoding="async" /></span>
+          <span class="growth-for">for now</span>
+        </span>
+      </h2>
+
+      <div class="growth-grid">
+        <div class="growth-body">
+          <p class="growth-lead">{growthText}</p>
+          <dl class="growth-compare">
+            <div>
+              <dt class="label">Today</dt>
+              {growthToday.map((item) => <dd>{item}</dd>)}
+            </div>
+            <div>
+              <dt class="label">Once Turtle works <span aria-hidden="true">→</span></dt>
+              {growthNext.map((item) => <dd>{item}</dd>)}
+            </div>
+          </dl>
+        </div>
+        <figure class="growth-photo" data-drift="70">
+          <img src={imageUrl('sections/growth-whale.jpg')} alt="A whale rising head first through sea ice" width="1000" height="901" loading="lazy" decoding="async" />
+          <figcaption class="label">[ Whale in sea ice ]</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- One big photo (ocean sunfish, false colour) leading on to Positions. Copy: Content doc, "Open positions" card. -->
+  <PhotoBand image="who-we-are.jpg" position="45% 40%" heading="We're recruiting." tag="Open positions">
+    <a class="button" href={url('/positions')}>See what roles are open <span aria-hidden="true">→</span></a>
+  </PhotoBand>
 </BaseLayout>
 
 <style>
-  .team-grid {
+  /* ---------- The lead: big portrait on the left, description box on the right ---------- */
+
+  .lead {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-xl) var(--space-md);
-    margin: 0;
-    padding: var(--space-lg) 0 0;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    align-items: start;
+    gap: clamp(3rem, 7vw, 7rem);
+    padding: var(--space-xl) 0 var(--space-lg); /* the band's own bottom padding adds the rest */
     border-top: 1px solid var(--color-line);
-    list-style: none;
   }
 
-  .member {
+  .lead-media {
+    position: relative;
+  }
+
+  /* Name in stacked violet boxes hanging over the photo's bottom right corner (Colossal's chairman) */
+  .lead-name {
+    position: absolute;
+    z-index: 3;
+    right: calc(-1 * clamp(1rem, 3vw, 3rem));
+    bottom: clamp(1.5rem, 3vw, 3rem);
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    margin: 0;
+    font-size: clamp(2rem, 1rem + 3vw, 4rem);
+    line-height: 1;
   }
 
-  /* Stand-in for a portrait: same shape as a photo, with the person's initials */
+  .lead-name span {
+    padding: 0.08em 0.22em 0.04em;
+    color: var(--color-white);
+    background: var(--color-violet);
+  }
+
+  /* The description box: dark, so it stands out on the light band */
+  .lead-box {
+    position: relative;
+    z-index: 2;
+    align-self: center;
+    max-width: 38rem;
+    padding: clamp(1.75rem, 3vw, 3rem);
+    color: var(--light-bg);
+    background: var(--light-text);
+  }
+
+  /* lime square on the box's corner, like the dots on Colossal's photos */
+  .lead-box::before {
+    content: '';
+    position: absolute;
+    top: -0.5rem;
+    left: -0.5rem;
+    width: 1rem;
+    height: 1rem;
+    background: var(--color-lime);
+  }
+
+  .lead-role {
+    margin: 0;
+    color: var(--light-bg);
+  }
+
+  .lead-role span {
+    margin-right: 0.4rem;
+    color: var(--color-lime);
+  }
+
+  .lead-bio {
+    margin: var(--space-md) 0 0;
+    font-size: clamp(1.2rem, 1rem + 0.7vw, 1.6rem);
+    line-height: 1.45;
+  }
+
+  /* major and year (and LinkedIn) along the bottom, under a hairline */
+  .lead-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-xs) var(--space-md);
+    margin-top: var(--space-lg);
+    padding-top: var(--space-sm);
+    border-top: 1px solid color-mix(in srgb, var(--light-bg) 25%, transparent);
+  }
+
+  .lead-major {
+    margin: 0;
+    color: color-mix(in srgb, var(--light-bg) 65%, transparent);
+  }
+
+  .lead-linkedin {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  /* ---------- Photo, colour accents and tag ---------- */
+
+  .member-panel {
+    position: relative;
+    z-index: 1;
+  }
+
+  .member-accent {
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* the founder's lime block, off the bottom left corner */
+  .member-accent--block-lime {
+    left: -1.25rem;
+    bottom: -1.25rem;
+    width: 58%;
+    height: 46%;
+    background: var(--color-lime);
+  }
+
+  .member-tag {
+    position: absolute;
+    z-index: 2;
+    top: 0.75rem;
+    left: 0.75rem;
+    margin: 0;
+    padding: 0.3rem 0.55rem;
+    color: var(--color-accent-ink);
+    background: var(--color-orange);
+  }
+
+  /* Stand-in for a portrait until the photo is added: the same dark striped panel as the site's other
+     "photo to come" panels, with the person's initials large in the corner */
   .member-panel {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    aspect-ratio: 4 / 5;
+    justify-content: flex-end;
+    align-items: flex-start;
+    gap: var(--space-xs);
     padding: var(--space-md);
     border-radius: var(--radius);
-    background: linear-gradient(160deg, var(--color-surface), color-mix(in srgb, var(--color-surface) 70%, var(--color-bg)));
+    /* the same family as the crew's panels below: a faint dot pattern and a glow in the founder's
+       lime, over deep navy */
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Ccircle cx='6' cy='6' r='1.1' fill='%23e8f1f5' fill-opacity='.2'/%3E%3C/svg%3E"),
+      radial-gradient(circle at 80% 18%, color-mix(in srgb, var(--color-lime) 30%, transparent), transparent 60%),
+      linear-gradient(160deg, #0c2236, #06121f);
   }
 
-  .member-index {
-    color: var(--color-accent);
+  .member-soon {
+    color: var(--color-lime);
   }
 
   .member-initials {
     font-family: var(--font-display);
     font-stretch: var(--display-width);
+    word-spacing: 0.1em; /* the condensed face squeezes the spaces too */
     font-weight: 900;
-    font-size: clamp(3rem, 1rem + 5vw, 6rem);
+    font-size: clamp(3.5rem, 1rem + 7vw, 8.5rem);
     line-height: 0.85;
     letter-spacing: -0.02em;
-    color: color-mix(in srgb, var(--color-text) 25%, transparent);
+    color: rgb(232 241 245 / 0.85);
   }
 
   /* Role text is longer than initials, so it's smaller and wraps */
   .member-initials--role {
-    font-size: clamp(1.6rem, 0.8rem + 2vw, 2.6rem);
+    font-size: clamp(1.4rem, 0.8rem + 1.6vw, 2.4rem);
     line-height: 0.95;
     text-transform: uppercase;
   }
 
-  /* Name sits under a thin line, like the captions on the Home cards */
-  .member-name {
-    margin-top: var(--space-sm);
-    padding-top: var(--space-sm);
-    border-top: 1px solid var(--color-line);
-    font-size: clamp(1.5rem, 1.1rem + 1vw, 2rem);
+  /* ---------- Tablet and phone: the lead stacks, the collage becomes two staggered columns ---------- */
+
+  @media (max-width: 900px) {
+    .lead {
+      grid-template-columns: 1fr;
+      gap: 0;
+      padding-bottom: var(--space-2xl);
+    }
+
+    .lead-media {
+      width: min(30rem, 84%);
+    }
+
+    /* the box tucks up under the photo, a little to the right, with a faint edge so the two dark
+       shapes don't merge into one */
+    .lead-box {
+      margin: calc(-1 * var(--space-md)) 0 0 auto;
+      width: min(34rem, 88%);
+      box-shadow: 0 0 0 1px rgb(232 241 245 / 0.22);
+    }
+
+    /* the name sits higher, clear of the box */
+    .lead-name {
+      bottom: calc(var(--space-md) + 1.5rem);
+    }
+
+    /* and so do the initials on the placeholder panel, clear of the box and its lime square */
+    .lead .member-panel {
+      padding-bottom: calc(var(--space-md) + 1.5rem);
+    }
   }
 
-  .member-role {
-    margin: var(--space-xs) 0 0;
-    font-weight: 600;
-    color: var(--color-accent);
+  @media (max-width: 760px) {
+    .lead-name {
+      right: -0.75rem;
+      font-size: 1.75rem;
+    }
+
+    .lead-bio {
+      font-size: var(--text-base);
+    }
+
+    .member-accent--block-lime {
+      left: -0.6rem;
+      bottom: -0.6rem;
+    }
+
+    /* on phones the tag drops its number; a long role wraps onto two even lines */
+    .member-tag {
+      top: 0.4rem;
+      left: 0.4rem;
+      right: 0.4rem;
+      width: fit-content;
+      padding: 0.2rem 0.4rem;
+      font-size: 0.66rem;
+    }
+
+    .lead-media {
+      margin-left: 0.6rem;
+    }
+
+    .member-panel {
+      padding: var(--space-sm);
+    }
   }
 
-  .member-major {
-    margin: 0.15rem 0 0;
+  /* ---------- Where we're headed (royal blue) ---------- */
+
+  .regions {
+    padding-top: var(--space-2xl);
+  }
+
+  .regions-tag {
+    margin: 0 0 var(--space-md);
+    text-align: center;
     color: var(--color-muted);
   }
 
-  .member-linkedin {
-    align-self: flex-start;
-    margin-top: var(--space-sm);
-    color: var(--color-text);
-    text-decoration: none;
+  .regions-title {
+    max-width: 17ch;
+    margin: 0 auto;
+    text-align: center;
   }
 
-  .member-linkedin:hover {
-    color: var(--color-accent);
+  /* Desktop: the reef and the text side by side; under them the route, then the glacier and the
+     dolphins at different heights, so the row is loose rather than lined up */
+  .regions-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--space-md);
+    margin-top: var(--space-xl);
   }
 
-  @media (max-width: 1023px) {
-    .team-grid {
-      grid-template-columns: repeat(2, 1fr);
+  .regions-photo {
+    margin: 0;
+  }
+
+  .regions-photo img {
+    width: 100%;
+  }
+
+  .regions-photo figcaption {
+    margin-top: 0.6rem;
+    color: var(--color-muted);
+  }
+
+  /* the reef reaches out to the left edge of the screen; its caption sits under the solid middle */
+  .regions-reef {
+    grid-column: 1 / span 8;
+    grid-row: 1;
+    margin-left: calc(-1 * var(--gutter));
+  }
+
+  .regions-reef figcaption {
+    padding-left: 22%;
+  }
+
+  .regions-text {
+    grid-column: 9 / span 4;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  .regions-text p {
+    margin: var(--space-md) 0 0;
+    color: var(--color-muted);
+    font-size: 1.05rem;
+  }
+
+  .regions-route {
+    grid-column: 1 / span 5;
+    grid-row: 2;
+    align-self: center;
+    margin: var(--space-xl) 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--color-line);
+  }
+
+  .regions-route li {
+    display: grid;
+    grid-template-columns: 4.5rem 4rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.9rem;
+    padding-block: 1rem;
+    border-bottom: 1px solid var(--color-line);
+    font-family: var(--font-tech);
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .regions-route .slashes {
+    height: 0.9rem;
+    background-color: var(--color-muted);
+  }
+
+  .route-when {
+    color: var(--color-lime);
+  }
+
+  .regions-ice {
+    grid-column: 6 / span 4;
+    grid-row: 2;
+    margin-top: var(--space-2xl);
+  }
+
+  .regions-dolphins {
+    grid-column: 10 / span 3;
+    grid-row: 2;
+    margin-top: calc(-1 * var(--space-md));
+  }
+
+  /* Tablet and phone: one column for the reef, text and route, then the two photos in a zigzag */
+  @media (max-width: 999px) {
+    .regions-grid {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      margin-top: var(--space-xl);
+    }
+
+    .regions-reef {
+      grid-column: 1 / -1;
+      margin-inline: calc(-1 * var(--gutter));
+    }
+
+    .regions-text,
+    .regions-route {
+      grid-column: 1 / -1;
+      grid-row: auto;
+    }
+
+    .regions-text {
+      max-width: 40rem;
+      margin-top: var(--space-lg);
+    }
+
+    .regions-route {
+      align-self: start;
+      margin-top: var(--space-xl);
+    }
+
+    .regions-ice {
+      grid-column: 1 / span 5;
+      grid-row: auto;
+      margin-top: var(--space-xl);
+    }
+
+    .regions-dolphins {
+      grid-column: 3 / span 4;
+      grid-row: auto;
+      margin-top: var(--space-lg);
     }
   }
 
-  /* Phone: keep two across so each card doesn't fill the whole screen */
+  /* Tablet: the glacier and the dolphins share a row, the dolphins a step lower */
+  @media (min-width: 600px) and (max-width: 999px) {
+    .regions-ice,
+    .regions-dolphins {
+      grid-row: 4;
+      align-self: start;
+    }
+
+    .regions-dolphins {
+      margin-top: calc(var(--space-xl) + var(--space-xl)); /* a clear step down from the glacier */
+    }
+
+    .regions-ice {
+      grid-column: 1 / span 4;
+    }
+
+    .regions-dolphins {
+      grid-column: 5 / span 2;
+    }
+  }
+
   @media (max-width: 480px) {
-    .team-grid {
-      gap: var(--space-lg) var(--space-sm);
+    .regions-route li {
+      grid-template-columns: 1.6rem 3.2rem minmax(0, 1fr);
+      gap: 0.6rem;
+      font-size: 0.7rem;
+    }
+  }
+
+  /* ---------- A small crew, for now (warm edited photo background) ---------- */
+
+  .growth {
+    --color-text: var(--color-sun-ink);
+    --color-muted: rgb(26 15 8 / 0.8);
+    --color-line: rgb(26 15 8 / 0.3);
+    padding-top: var(--space-2xl);
+    color: var(--color-text);
+    background: var(--color-sun) var(--growth-texture) center / cover no-repeat;
+  }
+
+  .growth-tag {
+    margin: 0;
+    color: var(--color-muted);
+  }
+
+  /* Headline in two typefaces: wide black capitals, then thin wide mono, with the egrets photo set
+     into the second line as a pill that takes up the space before "for now" */
+  .growth-title {
+    margin: var(--space-md) 0 0;
+    font-size: clamp(1.9rem, 0.8rem + 5.4vw, 6.6rem);
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .growth-line {
+    display: block;
+  }
+
+  .growth-line--big {
+    font-family: var(--font-display);
+    font-stretch: 125%;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+  }
+
+  .growth-line--mono {
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    margin-top: 0.12em;
+    font-family: var(--font-tech);
+    font-stretch: 112.5%;
+    font-weight: 300;
+    letter-spacing: 0.01em;
+  }
+
+  .growth-pill {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 3em;
+    height: 1.5em;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .growth-pill img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 70%;
+  }
+
+  .growth-for {
+    flex: 0 0 auto;
+  }
+
+  /* the heavy wide W and the comma would touch */
+  .growth-comma {
+    margin-left: 0.07em;
+  }
+
+  /* Under the headline: the lead and the comparison on the left, the whale on the right */
+  .growth-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: clamp(2.5rem, 6vw, 6rem);
+    align-items: start;
+    margin-top: var(--space-2xl);
+  }
+
+  .growth-lead {
+    max-width: 34rem;
+    margin: 0;
+    font-family: var(--font-display);
+    font-stretch: 112%;
+    font-size: clamp(1.3rem, 1rem + 1vw, 1.9rem);
+    line-height: 1.25;
+  }
+
+  .growth-compare {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-lg);
+    margin: var(--space-xl) 0 0;
+  }
+
+  .growth-compare dt {
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--color-text);
+    color: var(--color-text);
+  }
+
+  .growth-compare dd {
+    margin: 0;
+    padding-block: 0.7rem;
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .growth-photo {
+    margin: var(--space-sm) 0 0;
+  }
+
+  .growth-photo img {
+    width: 100%;
+  }
+
+  .growth-photo figcaption {
+    margin-top: 0.6rem;
+    color: var(--color-muted);
+  }
+
+  /* Tablet: still two columns, with the two lists stacked */
+  @media (min-width: 700px) and (max-width: 899px) {
+    .growth-grid {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: var(--space-lg);
+      margin-top: var(--space-xl);
     }
 
-    .member-name {
-      font-size: 1.25rem;
+    .growth-compare {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 699px) {
+    .growth-grid {
+      grid-template-columns: 1fr;
+      margin-top: var(--space-xl);
     }
 
-    .member-role,
-    .member-major {
-      font-size: var(--text-sm);
+    .growth-photo {
+      width: min(28rem, 80%);
+      margin-left: auto;
+    }
+  }
+
+  /* Phone: the pill gets a line of its own, so the birds are big enough to see */
+  @media (max-width: 600px) {
+    .growth-line--mono {
+      flex-wrap: wrap;
+      margin-top: 0.25em;
+    }
+
+    .growth-pill {
+      flex-basis: 100%;
+      height: 6.5rem;
+    }
+
+    .growth-compare {
+      grid-template-columns: 1fr;
     }
   }
 </style>

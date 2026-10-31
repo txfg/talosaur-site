@@ -1,55 +1,68 @@
 ---
-// Full-screen video hero at the top of the Home page: just the video and the TALOSAUR wordmark.
+// Full-screen video hero at the top of the Home page: just the video and the Talosaur logo.
 // The headline and intro text come right after it, in Section 01 (src/pages/index.astro).
 //
-// To swap the media, replace these files (keep the same names):
-//   public/videos/hero.mp4       the background video
-//   public/images/hero-poster.jpg  a still from the video, shown while it loads
-//                                  and to visitors who have "reduce motion" turned on
+// The same video comes in two sizes, and each visitor's browser downloads only one:
+//   public/videos/hero-1080.mp4    1920 x 1080, for screens 900 px wide or more
+//   public/videos/hero.mp4         1280 x 720, for phones, small windows and anything else
+//   public/images/hero-poster.jpg  a still from the video, shown while it loads, and instead of
+//                                  it for visitors with "reduce motion" or data saver turned on
 //
-// If hero.mp4 is missing, only the poster shows, with a placeholder tag.
+// So the video doesn't slow the page down, nothing of it downloads until the rest of the page has
+// loaded; then it starts playing, and it pauses whenever it is scrolled out of view. Keep the files
+// small: about 2.5 Mbit/s for the 1080p one and 1.3 Mbit/s for the 720p one (see README).
+//
+// The browser goes down the list below and plays the first file whose "media" rule fits
+// its screen. To swap the video, replace the files and keep the same names. A missing
+// file is simply left out of the list. If both are missing, only the poster shows,
+// with a placeholder tag.
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { url } from '../lib/url';
 
-const videoFile = 'videos/hero.mp4';         // where the file sits inside public/
+const videoFiles = [
+  { file: 'videos/hero-1080.mp4', type: 'video/mp4', media: '(min-width: 900px)' },
+  { file: 'videos/hero.mp4', type: 'video/mp4' }, // no media rule, so it is the fallback for everyone else
+];
 const posterFile = 'images/hero-poster.jpg';
 
-// Web addresses (with the /talosaur-site base added by url())
-const videoSrc = url(`/${videoFile}`);
+// Checked when the site is built, so adding or removing a file is all it takes.
+const sources = videoFiles
+  .filter(({ file }) => existsSync(join(process.cwd(), 'public', file)))
+  .map(({ file, ...rest }) => ({ src: url(`/${file}`), ...rest })); // url() adds the site's base folder, if it has one
+const hasVideo = sources.length > 0;
 const posterSrc = url(`/${posterFile}`);
-
-// Checked when the site is built, so adding the file is all it takes.
-const hasVideo = existsSync(join(process.cwd(), 'public', videoFile));
 ---
 
 <section class="hero">
-  <div class="hero-media" aria-hidden="true">
+  <div class="hero-media" aria-hidden="true" data-parallax="0.4">
     <!-- The still image. Always here, underneath the video. -->
     <img class="hero-poster" src={posterSrc} alt="" fetchpriority="high" />
 
     {hasVideo && (
       <video
         class="hero-video"
-        src={videoSrc}
         poster={posterSrc}
-        autoplay
         muted
         loop
         playsinline
-        preload="auto"
-      ></video>
+        preload="none"
+      >
+        {sources.map((s) => <source src={s.src} type={s.type} media={s.media} />)}
+      </video>
     )}
   </div>
 
   {!hasVideo && (
     <p class="hero-placeholder-tag label">
-      Placeholder: hero video (public/videos/hero.mp4) and still image (public/images/hero-poster.jpg)
+      Placeholder: hero video (public/videos/hero-1080.mp4 and hero.mp4) and still image (public/images/hero-poster.jpg)
     </p>
   )}
 
   <div class="container hero-content">
-    <p class="hero-wordmark">Talosaur</p>
+    <!-- Logo: replace public/brand/talosaur-lockup-white.svg to change it (keep it pure white) -->
+    <img class="hero-wordmark" src={url('/brand/talosaur-lockup-white.svg')} alt="Talosaur" width="4983" height="852" />
+
     <a class="hero-scroll label" href="#intro">
       Scroll <span aria-hidden="true">↓</span>
     </a>
@@ -57,16 +70,28 @@ const hasVideo = existsSync(join(process.cwd(), 'public', videoFile));
 </section>
 
 <script>
-  // Reduced motion: remove the video entirely so it never plays (or downloads).
-  // The poster image underneath stays visible.
   const video = document.querySelector<HTMLVideoElement>('.hero-video');
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Data saver, or a very slow connection (where the browser tells us): keep to the still image
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  const lowData = !!connection && (connection.saveData === true || /2g$/.test(connection.effectiveType ?? ''));
 
-  if (video && reduceMotion.matches) {
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
+  if (video && (reduceMotion || lowData)) {
+    // Remove the video entirely so it never plays or downloads. The poster underneath stays visible.
+    video.querySelectorAll('source').forEach((source) => source.remove());
     video.remove();
+  } else if (video) {
+    const start = () => {
+      // Muted videos may play without a click; if the browser still refuses (some phones in low
+      // power mode), the poster simply stays.
+      const play = () => video.play().catch(() => {});
+      play();
+      // Pause while the hero is off screen, so it doesn't keep using the processor; play again on return
+      new IntersectionObserver(([entry]) => (entry.isIntersecting ? play() : video.pause())).observe(video);
+    };
+    // Wait until the rest of the page (pictures, fonts) has loaded, so the video doesn't compete with it
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
   }
 </script>
 
@@ -99,14 +124,15 @@ const hasVideo = existsSync(join(process.cwd(), 'public', videoFile));
     object-fit: cover;
   }
 
-  /* Dark fade at the bottom so the white text is always readable */
+  /* Dark fade at the top so the menu stays readable, and a deeper one along the bottom under the
+     wordmark, so the white wordmark reads over any shot, bright or dark. */
   .hero-media::after {
     content: '';
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(to top, var(--color-bg) 0%, color-mix(in srgb, var(--color-bg) 40%, transparent) 30%, transparent 60%),
-      linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 50%, transparent) 0%, transparent 20%);
+      linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 50%, transparent) 0%, transparent 20%),
+      linear-gradient(to top, color-mix(in srgb, var(--color-bg) 82%, transparent) 0%, color-mix(in srgb, var(--color-bg) 45%, transparent) 30%, transparent 55%);
   }
 
   /* Belt and braces: if the script hasn't run yet, still hide the video */
@@ -136,18 +162,22 @@ const hasVideo = existsSync(join(process.cwd(), 'public', videoFile));
     padding-bottom: clamp(2rem, 6svh, 4rem);
   }
 
-  /* Giant wordmark in the lower part of the video */
+  /* Giant logo in the lower part of the video: the white lockup from the brand pack, in plain foam
+     white over the dark fade. (It used to invert the video behind it; on light shots like the
+     opening eye that came out a muddy beige.) */
   .hero-wordmark {
-    margin: 0;
-    font-family: var(--font-display);
-    font-stretch: var(--display-width);
-    font-weight: 900;
-    font-size: clamp(4rem, 19vw, 19rem);
-    line-height: 0.8;
-    letter-spacing: -0.02em;
-    text-transform: uppercase;
-    color: var(--color-text);
+    display: block;
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: calc(100% - 7rem); /* leaves room for "Scroll" on wide screens */
+    height: auto;
     animation: rise 1.2s var(--ease) both;
+  }
+
+  @media (max-width: 760px) {
+    .hero-wordmark {
+      max-width: 100%; /* phones: full width, "Scroll" wraps underneath */
+    }
   }
 
   @keyframes rise {
@@ -157,9 +187,13 @@ const hasVideo = existsSync(join(process.cwd(), 'public', videoFile));
     }
   }
 
+  /* In a dark glassy box like the caption tags, so it shows on bright and dark shots alike */
   .hero-scroll {
-    padding-bottom: 0.35em;
-    color: var(--color-text);
+    padding: 0.3rem 0.55rem;
+    color: var(--color-white);
+    background: rgb(6 18 31 / 0.55);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
     text-decoration: none;
     animation: rise 1.2s 400ms var(--ease) both;
   }
