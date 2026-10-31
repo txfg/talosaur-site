@@ -9,6 +9,7 @@ import StoryBand from '../components/StoryBand.astro';
 import { url } from '../lib/url';
 import { imageUrl } from '../lib/images';
 import { location, contactEmails } from '../data/site';
+import { sources } from '../data/problem';
 
 const intro =
   "Do you work with marine life between 50 and 300 meters, in research, conservation, fisheries or offshore energy? We'd love a 20\u2011minute conversation about how you study it today."; // \u2011 is a hyphen that never breaks the line
@@ -40,6 +41,40 @@ const steps = [
   { title: 'Plan', text: 'Together we will pick the site, the depth and the dates, and what each dive needs to bring back.' },
   { title: 'Dive', text: 'We will take Turtle out by boat to film and sample, and keep you posted from the water.' },
   { title: 'Deliver', text: 'We will hand everything over, then talk about what to look at next time.' },
+];
+
+// "Built around your questions": the kind of question each group from "Who we work with" brings, set
+// big, and what partners who talk to us early get. New copy (not from the Content doc), edit freely.
+const questions = [
+  { text: 'How is the deep reef changing?', who: 'Research · Conservation', style: 'solid' },
+  { text: 'Where do the grouper gather?', who: 'Fisheries', style: 'mono' },
+  { text: 'What lives around the platform?', who: 'Offshore energy', style: 'outline' },
+];
+const earlyPerks = [
+  { title: 'A say in the design', text: 'Which depths, which animals and which samples matter for your work.' },
+  { title: 'Early dives', text: 'We plan to dive first with the partners who helped shape Turtle.' },
+  { title: 'News from the build', text: 'Test results as they happen, on our News page and live stream.' },
+];
+
+// "Ways to work together": the first is the projects above; the other three come from the Content doc's
+// Donate page ("Give in kind", "Sponsor a project") plus advisors. "href" is where the link goes.
+const generalEmail = contactEmails[0].email;
+const ways = [
+  { title: 'Survey partner', text: 'Bring us a site and a question. We plan the dives with you and hand over the footage, samples and report.', link: 'Email us', href: `mailto:${generalEmail}` },
+  { title: 'Field partner', text: 'Parts, equipment, pool time or boat days: every test gets Turtle closer to the Gulf.', link: 'Email us', href: `mailto:${generalEmail}` },
+  { title: 'Advisor', text: 'Scientists, engineers and boat crews who can spare an hour to tell a student team what it is missing.', link: 'Email us', href: `mailto:${generalEmail}` },
+  { title: 'Sponsor', text: 'Back a build like Turtle or our eDNA sampler, or fund a field test.', link: 'Ways to give', href: url('/donate') },
+];
+
+// "Good to know": short answers to what partners ask first. Kept to what the team can say today:
+// nothing about how Turtle works inside, no prices, no dates.
+const faqs = [
+  { q: 'Is Turtle ready?', a: 'Not yet. Turtle is being built and tested now: first in the pool, then in Texas lakes, then in the Gulf. We plan to start partner projects once it has proven itself there, and we will keep you posted until then.' },
+  { q: 'How deep will it go?', a: 'Turtle is being built for the twilight zone, between 50 and 300\u00a0m: below where divers can safely work, and above where most deep-sea vehicles are sent.' },
+  { q: 'Where can you work?', a: 'We are starting in the Gulf of Mexico, close to home, with Flower Garden Banks as our first goal. Places further away come later: tell us where you work and we will tell you when it might be possible.' },
+  { q: 'What will a project cost?', a: 'It depends on the site, the depth and how many dives you need, so we work it out with you. Keeping the cost low is the reason Turtle exists: commercial underwater robots cost $50,000 to over $1 million, and running a research ship tens of thousands of dollars a day.', sources: [sources.robots, sources.ship] },
+  { q: 'Who owns the footage and data?', a: 'We agree that with each partner before the first dive.' },
+  { q: 'Can we come along on a dive?', a: 'We would like that. It depends on the boat and the site, so we plan it together.' },
 ];
 ---
 
@@ -102,6 +137,47 @@ const steps = [
     </section>
   </div>
 
+  <!-- Built around your questions: deep navy, with the questions partners bring set big in three
+       different type treatments (solid wide capitals, thin mono in lime, outlined capitals), each tagged
+       with who asks it. Under them, a diver surveying a reef at Flower Garden Banks (NOAA, natural
+       colour: public/images/sections/partners-diver.jpg) beside what early partners get. -->
+  <section class="band partners">
+    <div class="container">
+      <p class="label partners-tag">[ Built around your questions ]</p>
+      <ul class="questions" role="list">
+        {questions.map((item) => (
+          <li class={`question question--${item.style}`}>
+            <span class="question-text">{item.text}</span>
+            <span class="label question-who">[ {item.who} ]</span>
+          </li>
+        ))}
+      </ul>
+
+      <div class="partners-grid">
+        <figure class="partners-photo" data-drift="60">
+          <img src={imageUrl('sections/partners-diver.jpg')} alt="A diver with a clipboard surveying a reef along a measuring line" width="1400" height="905" loading="lazy" decoding="async" />
+          <figcaption class="label">[ Reef survey · Flower Garden Banks ]</figcaption>
+        </figure>
+
+        <div class="partners-body">
+          <h2 class="wide-head">Your question shapes Turtle</h2>
+          <p>Reef surveys like this one are done by divers, who can't safely go much below 40&nbsp;m. Deeper down, the reefs at Flower Garden Banks are surveyed about once a year, by remotely operated vehicle. Turtle is still being built, so the partners we talk to now help decide what it films, what it samples and where it goes first.</p>
+          <dl class="perks">
+            {earlyPerks.map((perk) => (
+              <div>
+                <dt>{perk.title}</dt>
+                <dd>{perk.text}</dd>
+              </div>
+            ))}
+          </dl>
+          <p class="label partners-sources">
+            Sources: <a href={sources.diving.href}>{sources.diving.label}</a> · <a href={sources.fgbDeep.href}>{sources.fgbDeep.label}</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- What we bring back: a bright orange band (not every stretch has to be navy) with a wide technical
        title (Martian Mono) and the coral wall in natural colour, its corner notched like the colour
        blocks on Colossal's pages. Photo: public/images/sections/work-coral.jpg. -->
@@ -146,6 +222,65 @@ const steps = [
         ))}
       </ol>
       <a class="button steps-button" href="#contact">Start with a call <span aria-hidden="true">↑</span></a>
+    </div>
+  </section>
+
+  <!-- Ways to work together: a lime band with one big row per way in, like an index. A row turns
+       dark when you point at it. No pictures: the big condensed type carries it. -->
+  <section class="band theme-lime ways">
+    <div class="container">
+      <div class="ways-head">
+        <p class="label">[ Four ways in ]</p>
+        <h2 class="ways-title">Ways to work together</h2>
+      </div>
+      <ul class="ways-list" role="list">
+        {ways.map((way) => (
+          <li>
+            <a class="way" href={way.href}>
+              <span class="way-title">{way.title}</span>
+              <span class="way-text">{way.text}</span>
+              <span class="way-link label">{way.link} <span aria-hidden="true">→</span></span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- Good to know: short answers, opened one at a time, beside the black coral from Flower Garden
+       Banks as violet halftone dots (an edit of NOAA's photo: public/images/sections/partners-coral-dots.webp,
+       made by stills_site/make_new_sections.py). -->
+  <section class="band theme-light faq">
+    <div class="container faq-grid">
+      <div class="faq-side">
+        <p class="label">[ Before you write ]</p>
+        <h2 class="tech-title faq-title">Good to know</h2>
+        <figure class="faq-coral" aria-hidden="true">
+          <img src={imageUrl('sections/partners-coral-dots.webp')} alt="" width="1200" height="1013" loading="lazy" decoding="async" />
+          <figcaption class="label">[ Black coral · Flower Garden Banks ]</figcaption>
+        </figure>
+      </div>
+
+      <div class="faq-list">
+        {faqs.map((item, i) => (
+          <details open={i === 0}>
+            <summary>
+              <span>{item.q}</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </summary>
+            <p>
+              {item.a}
+              {item.sources && (
+                <span class="faq-sources label">
+                  {' '}Sources: {item.sources.map((source, j) => (
+                    <>{j > 0 && ' · '}<a href={source.href}>{source.label}</a></>
+                  ))}
+                </span>
+              )}
+            </p>
+          </details>
+        ))}
+      </div>
     </div>
   </section>
 
@@ -273,6 +408,337 @@ const steps = [
       width: min(34rem, 88%);
       margin: var(--space-md) 0.6rem calc(var(--space-xl) + var(--space-md)) auto;
     }
+  }
+
+  /* ---------- Built around your questions (navy) ---------- */
+
+  .partners {
+    padding-top: var(--space-2xl);
+  }
+
+  .partners-tag {
+    margin: 0;
+  }
+
+  /* the questions, big, each in its own type treatment, stepping right as they go down */
+  .questions {
+    margin: var(--space-lg) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .question {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem var(--space-md);
+    padding-block: clamp(0.6rem, 1.2vw, 1.1rem);
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .question:nth-child(2) {
+    padding-left: clamp(0rem, 8vw, 9rem);
+  }
+
+  .question:nth-child(3) {
+    padding-left: clamp(0rem, 16vw, 18rem);
+  }
+
+  .question-text {
+    font-size: clamp(1.9rem, 0.6rem + 4.6vw, 5.4rem);
+    line-height: 0.98;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+
+  .question--solid .question-text,
+  .question--outline .question-text {
+    font-family: var(--font-display);
+    font-stretch: var(--display-width);
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    word-spacing: 0.12em; /* the condensed face squeezes the spaces too */
+  }
+
+  .question--mono .question-text {
+    font-family: var(--font-tech);
+    font-stretch: 112.5%;
+    font-weight: 300;
+    font-size: clamp(1.5rem, 0.5rem + 3.6vw, 4.2rem);
+    color: var(--color-lime);
+  }
+
+  /* outlined capitals: just the edge of each letter */
+  .question--outline .question-text {
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--color-text);
+  }
+
+  .question-who {
+    color: var(--color-muted);
+  }
+
+  .partners-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    gap: clamp(2.5rem, 6vw, 6rem);
+    align-items: start;
+    margin-top: var(--space-2xl);
+  }
+
+  .partners-photo {
+    margin: 0;
+  }
+
+  .partners-photo img {
+    width: 100%;
+  }
+
+  .partners-photo figcaption {
+    margin-top: 0.6rem;
+    color: var(--color-muted);
+  }
+
+  .partners-body p {
+    margin: var(--space-md) 0 0;
+    color: var(--color-muted);
+  }
+
+  .perks {
+    margin: var(--space-lg) 0 0;
+    border-top: 1px solid var(--color-line);
+  }
+
+  .perks div {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--space-sm);
+    padding-block: var(--space-sm);
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .perks dt {
+    font-weight: 600;
+    color: var(--color-lime);
+  }
+
+  .perks dd {
+    margin: 0;
+    color: var(--color-muted);
+  }
+
+  .partners-body .partners-sources {
+    margin-top: var(--space-sm);
+  }
+
+  .partners-sources a {
+    color: var(--color-muted);
+  }
+
+  /* ---------- Ways to work together (lime) ---------- */
+
+  .theme-lime {
+    --color-bg: var(--color-lime);
+    --color-text: #0b1620;
+    --color-muted: rgb(11 22 32 / 0.78);
+    --color-line: rgb(11 22 32 / 0.3);
+    background: var(--color-bg);
+    color: var(--color-text);
+  }
+
+  .ways {
+    padding-top: var(--space-2xl);
+  }
+
+  .ways-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: var(--space-sm);
+  }
+
+  .ways-head .label {
+    order: 2;
+    margin: 0;
+  }
+
+  /* the site's own condensed headline type, very big, for contrast with the mono titles around it */
+  .ways-title {
+    font-size: clamp(2.6rem, 1rem + 6.4vw, 7.5rem);
+    line-height: 0.9;
+  }
+
+  .ways-list {
+    margin: var(--space-xl) 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 2px solid var(--color-text);
+  }
+
+  .way {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 5fr) 8.5rem;
+    align-items: baseline;
+    gap: var(--space-lg);
+    padding: var(--space-md) var(--space-sm);
+    border-bottom: 1px solid var(--color-line);
+    color: inherit;
+    text-decoration: none;
+    transition:
+      background var(--duration) var(--ease),
+      color var(--duration) var(--ease);
+  }
+
+  .way:hover,
+  .way:focus-visible {
+    background: var(--color-text);
+    color: var(--color-lime);
+  }
+
+  .way-title {
+    font-family: var(--font-display);
+    font-stretch: var(--display-width);
+    font-weight: 900;
+    font-size: clamp(1.8rem, 1rem + 2.6vw, 3.4rem);
+    line-height: 0.95;
+    word-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .way-text {
+    color: inherit;
+    opacity: 0.85;
+  }
+
+  .way-link {
+    color: inherit;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .way-link span {
+    display: inline-block;
+    transition: transform var(--duration) var(--ease);
+  }
+
+  .way:hover .way-link span {
+    transform: translateX(4px);
+  }
+
+  /* ---------- Good to know (light) ---------- */
+
+  .faq {
+    padding-top: var(--space-2xl);
+  }
+
+  .faq-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: clamp(2.5rem, 6vw, 6rem);
+    align-items: start;
+  }
+
+  .faq-side .label {
+    margin: 0;
+  }
+
+  .faq-title {
+    margin-top: var(--space-sm);
+  }
+
+  .faq-coral {
+    margin: var(--space-xl) 0 0;
+    max-width: 30rem;
+  }
+
+  .faq-coral img {
+    width: 100%;
+  }
+
+  .faq-coral figcaption {
+    margin-top: 0.4rem;
+  }
+
+  .faq-list {
+    border-top: 1px solid var(--color-text);
+  }
+
+  .faq-list details {
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .faq-list summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md);
+    padding-block: var(--space-md);
+    font-family: var(--font-display);
+    font-stretch: 112%;
+    font-size: clamp(1.15rem, 0.95rem + 0.7vw, 1.6rem);
+    line-height: 1.2;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .faq-list summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /* a plus that turns into a minus when the answer is open */
+  .faq-icon {
+    position: relative;
+    flex: 0 0 auto;
+    width: 2.2rem;
+    height: 2.2rem;
+    border: 1px solid var(--color-line);
+    border-radius: 50%;
+  }
+
+  .faq-icon::before,
+  .faq-icon::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.8rem;
+    height: 1.5px;
+    background: var(--color-text);
+    transform: translate(-50%, -50%);
+    transition: transform var(--duration) var(--ease);
+  }
+
+  .faq-icon::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+
+  details[open] .faq-icon::after {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  details[open] .faq-icon {
+    background: var(--color-violet);
+    border-color: var(--color-violet);
+  }
+
+  details[open] .faq-icon::before,
+  details[open] .faq-icon::after {
+    background: #ffffff;
+  }
+
+  .faq-list details p {
+    max-width: 40rem;
+    margin: 0 0 var(--space-md);
+    color: var(--color-muted);
+  }
+
+  .faq-sources {
+    white-space: nowrap;
+  }
+
+  .faq-sources a {
+    color: var(--color-muted);
   }
 
   /* ---------- What we bring back (orange) ---------- */
@@ -535,6 +1001,62 @@ const steps = [
     .deliver-list {
       grid-template-columns: 1fr;
       gap: var(--space-lg);
+    }
+  }
+
+  /* Tablet and phone: the new sections stack */
+  @media (max-width: 999px) {
+    .partners-grid,
+    .faq-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .partners-photo {
+      width: min(40rem, 100%);
+    }
+
+    .faq-coral {
+      max-width: 20rem;
+      margin-top: var(--space-md);
+    }
+
+    .way {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--space-xs) var(--space-md);
+    }
+
+    .way-text {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+
+    .way-link {
+      grid-column: 2;
+      grid-row: 1;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .question:nth-child(2),
+    .question:nth-child(3) {
+      padding-left: 0;
+    }
+
+    .question--outline .question-text {
+      -webkit-text-stroke-width: 1px;
+    }
+
+    .perks div {
+      grid-template-columns: 1fr;
+      gap: 0.2rem;
+    }
+
+    .way {
+      padding-inline: 0;
+    }
+
+    .faq-sources {
+      white-space: normal;
     }
   }
 
